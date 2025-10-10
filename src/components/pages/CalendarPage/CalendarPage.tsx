@@ -105,199 +105,45 @@ const CalendarPage = () => {
     }
     return result;
   }
+  interface IVacation {
+    id: number;
+    start: string; // '2025-10-01'
+    end: string;   // '2025-10-05'
+    name: string;
+  }
 
+  const assignVacationRows = (vacations: IVacation[], month: number, year: number) => {
+    type VacationWithDates = IVacation & { startDate: Date; endDate: Date };
+
+    const monthVacations: VacationWithDates[] = vacations
+      .map(v => ({
+        ...v,
+        startDate: new Date(v.start),
+        endDate: new Date(v.end)
+      }))
+      .filter(v => (v.startDate.getMonth() <= month && v.endDate.getMonth() >= month));
+
+    const rows: VacationWithDates[][] = [];
+
+    monthVacations.forEach(vac => {
+      let placed = false;
+      for (let i = 0; i < rows.length; i++) {
+        // проверяем пересечение отпусков
+        if (!rows[i].some(r =>
+          (vac.startDate <= r.endDate && vac.endDate >= r.startDate)
+        )) {
+          rows[i].push(vac);
+          placed = true;
+          break;
+        }
+      }
+      if (!placed) rows.push([vac]);
+    });
+
+    return rows;
+  };
 
   const weeks = getWeeksWithAdjacentDays(currentYear, select - 1);
-  const daysInMonth = new Date(currentYear, select - 1, 0).getDate();
-  const monthStart = new Date(currentYear, select - 1, 1);
-  const monthEnd = new Date(currentYear, select, 0, 23, 59, 59, 999);
-  const cellWidth = 100 / 7;
-  const cellHeight = 100 / weeks.length;
-
-  const bars = dateSettings.vacations.map((v, i) => {
-    const start = new Date(v.start);
-    const end = new Date(v.end);
-
-    let startCell: { row: number, col: number } | null = null;
-    let endCell: { row: number, col: number } | null = null;
-
-    weeks.forEach((week, row) => {
-      week.forEach((d, col) => {
-        const cellDate = new Date(currentYear, select - 1 + d.monthOffset, d.day);
-        if (!startCell && cellDate >= start && cellDate <= end) {
-          startCell = { row, col };
-        }
-        if (cellDate >= start && cellDate <= end) {
-          endCell = { row, col };
-        }
-      });
-    });
-    if (!startCell || !endCell) {
-      return null;
-    }
-
-    const { row: startRow, col: startCol } = startCell;
-    const { row: endRow, col: endCol } = endCell;
-
-    const top = startRow * cellHeight + cellHeight * 0.4;
-    const left = startCol * cellWidth;
-
-    const rowSpan = (endRow - startRow) * 7 + (endCol - startCol + 1);
-    const width = rowSpan * cellWidth;
-
-    return (
-      <div
-        key={i}
-        className={`vacation-bar color-${i % 5}`}
-        style={{
-          top: `${top}%`,
-          left: `${left}%`,
-          width: `${width}%`
-        }}
-      >
-
-      </div>
-    )
-
-
-  });
-
-
-  // const renderVacationBars = (weeks: { day: number, monthOffset: number }[][]) => {
-  //   const bars: JSX.Element[] = [];
-
-
-
-  //   dateSettings.vacations.forEach((v, i) => {
-  //     const start = new Date(v.start);
-  //     const end = new Date(v.end);
-
-  //     let startCell: { row: number, col: number } | null = null;
-  //     let endCell: { row: number, col: number } | null = null;
-
-  //     weeks.forEach((week, weekIndex) => {
-  //       week.forEach((d, di) => {
-  //         const cellDate = new Date(currentYear, select - 1 + d.monthOffset, d.day);
-  //         if (!startCell && cellDate >= start && cellDate <= end) {
-  //           startCell = { row: weekIndex, col: di };
-  //         }
-  //         if (cellDate >= start && cellDate <= end) {
-  //           endCell = { row: weekIndex, col: di };
-  //         }
-  //       });
-  //       if (!startCell || !endCell) {
-  //         return;
-  //       }
-  //       const totalDays = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24) + 1;
-
-  //       const top = startCell.row * cellHeight + cellHeight * 0.4;
-  //       const left = startCell.col * cellWidth;
-
-  //       const rowSpan = endCell.row - startCell.row;
-  //       const baseWidth = (rowSpan * 7 + (endCell.col - startCell.col + 1)) * cellWidth;
-
-  //       bars.push(
-  //         <div
-  //           key={i}
-  //           className={`vacation-bar color-${i % 5}`}
-  //           style={{
-  //             top: `${top}%`,
-  //             left: `${left}%`,
-  //             width: `${baseWidth}%`
-  //           }}
-  //         >
-
-  //         </div>
-  //       )
-  //     });
-  //   });
-  //   return bars;
-  // }
-
-
-  // const bars = useMemo(() => {
-
-  //   const weekBars: Record<number, any[]> = {};
-
-  //   for (const v of dateSettings.vacations) {
-  //     const start = new Date(v.start);
-  //     const end = new Date(new Date(v.end).getFullYear(), new Date(v.end).getMonth(), new Date(v.end).getDate());
-
-  //     if (end < monthStart || start > monthEnd) {
-  //       continue;
-  //     }
-
-  //     const clampedStart = start < monthStart ? monthStart : start;
-  //     const clampedEnd = end > monthEnd ? monthEnd : end;
-  //     const startDay = clampedStart.getDate();
-  //     const endDay = clampedEnd.getDate();
-  //     weeks.forEach((week, weekIndex) => {
-  //       // const realDays = week.filter((d) => d.day != null) as number[];
-  //       // if (realDays.length === 0) {
-  //       //   return;
-  //       // }
-  //       const daysInVacation = week
-  //         .map((d, i) => {
-  //           const cellDate = new Date(currentYear, select - 1 + mont)
-  //         });
-  //       const firstDayInWeek = realDays[0];
-  //       const lastDayInWeek = realDays[realDays.length - 1];
-
-  //       if (endDay < firstDayInWeek || startDay > lastDayInWeek) {
-  //         return;
-  //       }
-
-  //       const s = Math.max(startDay, firstDayInWeek);
-  //       const e = Math.min(endDay, lastDayInWeek);
-  //       const startCol = week.findIndex((d) => d === s);
-  //       const endCol = week.findIndex((d) => d === e);
-  //       if (startCol === -1 || endCol === -1) {
-  //         return;
-  //       }
-
-  //       const barsInWeek = weekBars[weekIndex] || [];
-  //       let row = 0;
-  //       while (
-  //         barsInWeek.some(
-  //           (b) =>
-  //             b.row === row &&
-  //             !(endCol < b.startCol || startCol > b.endCol)
-  //         )
-  //       ) {
-  //         row++;
-  //       }
-
-  //       const bar = {
-  //         id: v.id,
-  //         weekIndex,
-  //         startCol,
-  //         endCol,
-  //         name: v.name,
-  //         row
-  //       }
-
-  //       barsInWeek.push(bar);
-  //       weekBars[weekIndex] = barsInWeek;
-
-  //     });
-
-
-  //   }
-  //   return Object.values(weekBars).flat();
-
-  // }, [select, weeks, monthStart, monthEnd])
-
-  /////////////
-
-  const getColorsForId = (id: string) => {
-    let hash = 0;
-    const idStr = String(Number(id) * 10000);
-    for (let i = 0; i < idStr.length; i++) {
-      hash = idStr.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    const hue = Math.abs(hash) % 360;
-    return `hsla(${hue}, 85%, 35%, 50%)`;
-  }
 
   const contextMenuHandler = (event: MouseEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -332,7 +178,13 @@ const CalendarPage = () => {
       dispatch(getSettings())
     }
   }, [status, dispatch])
-
+  function formatDateShort(dateStr: string) {
+    const d = new Date(dateStr);
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const year = String(d.getFullYear()).slice(-2); // последние 2 цифры года
+    return `${day}.${month}.${year}`;
+  }
   const calendarContent = <>
     {months.map(month =>
       <CalendarWidget
@@ -343,8 +195,24 @@ const CalendarPage = () => {
       />
     )}
   </>
-
-
+  const colors = ["#4caf5055", "#2196f355", "#ff980055", "#e91e6355", "#9c27b055", "#ff572255"];
+  function getColorForName(name: string) {
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash) % colors.length;
+    return colors[index];
+  }
+  const [hoveredVacation, setHoveredVacation] = useState<null | {
+    id: number
+    x: number
+    y: number
+    name: string
+    start: string
+    end: string
+    reason?: string
+  }>(null);
   return (
     <>
       <div className="months-view">
@@ -360,61 +228,137 @@ const CalendarPage = () => {
             ))}
           </div>
 
-          <div>
-            {weeks.map((week, weekIndex) => (
-              <div key={weekIndex} className="week">
-                <div className="day-wrapper">
-                  {week.map(({ day, monthOffset }, i) => {
-                    const date = new Date(currentYear, select - 1, day);
-                    const isOtherMonth = monthOffset !== 0;
-                    const isToday = date.toDateString() === new Date().toDateString();
+          <div className="calendar-grid">
+            {weeks.map((week, weekIndex) => {
+              // вычисляем реальные даты начала и конца недели
+              const firstVisibleDay = new Date(currentYear, select - 1 + week[0].monthOffset, week[0].day);
+              const lastVisibleDay = new Date(currentYear, select - 1 + week[6].monthOffset, week[6].day);
 
-                    const birthdaysToday = dateSettings.birthdays.filter(b => {
-                      const bd = new Date(b.day);
-                      return bd.getMonth() === select - 1 && bd.getDate() === day;
-                    })
+              // фильтруем отпуска, которые хоть как-то пересекаются с неделей
+              const weekVacations = dateSettings.vacations.filter(v => {
+                const start = new Date(v.start);
+                const end = new Date(v.end);
+                return start <= lastVisibleDay && end >= firstVisibleDay;
+              });
 
-                    const hasBirthday = birthdaysToday.length > 0;
-                    const workHours = getWorkHoursForDate(new Date(currentYear, select - 1, day!), workExceptions);
-                    const classNames = [
-                      "day",
-                      isToday && "today",
-                      hasBirthday && "birthday"
-                    ].filter(Boolean).join(" ");
+              // распределяем их по строкам, чтобы не налегали
+              const vacationRows = assignVacationRows(weekVacations, select - 1, currentYear);
 
-                    return (
-                      <div className={classNames} key={i}>
-                        {day && (
-                          <>
+              return (
+                <div key={weekIndex} className="week">
+                  <div className="day-wrapper">
+                    {week.map(({ day, monthOffset }, i) => {
+                      const date = new Date(currentYear, select - 1 + monthOffset, day);
+                      const isOtherMonth = monthOffset !== 0;
+                      const isToday = date.toDateString() === new Date().toDateString();
 
-                            {birthdaysToday.map(b => (
-                              <div key={b.id} className="birthday-name">
-                                🍰 {b.name}
-                              </div>
-                            ))}
-                            <div className="work-hours">{workHours > 0 ? `${formatHours(workHours)}` : "00:00"}</div>
-                            <div className="day-number">{day}</div>
+                      const birthdaysToday = monthOffset === 0
+                        ? dateSettings.birthdays.filter(b => {
+                          const bd = new Date(b.day);
+                          return bd.getMonth() === select - 1 && bd.getDate() === day;
+                        })
+                        : [];
 
-                          </>
-                        )}
-                      </div>
-                    )
-                  }
-                  )}
+                      const hasBirthday = birthdaysToday.length > 0;
+                      const workHours = getWorkHoursForDate(date, workExceptions);
+
+                      const classNames = [
+                        "day",
+                        isToday && "today",
+                        isOtherMonth && "other-month",
+                        hasBirthday && "birthday",
+                      ]
+                        .filter(Boolean)
+                        .join(" ");
+                      return (
+                        <div className={classNames} key={i}>
+                          {birthdaysToday.map(b => (
+                            <div key={b.id} className="birthday-name">
+                              🍰 {b.name}
+                            </div>
+                          ))}
+                          <div className="work-hours">
+                            {workHours > 0 ? formatHours(workHours) : "00:00"}
+                          </div>
+                          <div className="day-number">{day}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Линии отпусков */}
+                  {vacationRows.map((row, rowIndex) => (
+                    <div
+                      className="vacation-row"
+                      key={rowIndex}
+                      style={{ bottom: `${rowIndex * 20}px` }}
+                    >
+                      {row.map(vac => {
+                        const start = new Date(vac.start);
+                        const end = new Date(vac.end);
+
+                        const visibleStart = start < firstVisibleDay ? firstVisibleDay : start;
+                        const visibleEnd = end > lastVisibleDay ? lastVisibleDay : end;
+
+                        const startDayOfWeek = (visibleStart.getDay() + 6) % 7;
+                        const endDayOfWeek = (visibleEnd.getDay() + 6) % 7;
+
+                        const left = (startDayOfWeek / 7) * 100;
+                        const width = ((endDayOfWeek - startDayOfWeek + 1) / 7) * 100;
+
+
+                        return (
+                          <div
+                            key={vac.id}
+                            className="vacation-bar"
+                            style={{
+                              left: `${left}%`,
+                              width: `${width}%`,
+                              backgroundColor: getColorForName(vac.name),
+                            }}
+                            onMouseMove={(e) => {
+                              setHoveredVacation({
+                                id: vac.id,
+                                x: e.clientX,
+                                y: e.clientY,
+                                name: vac.name,
+                                start: vac.start,
+                                end: vac.end,
+                                reason: "",
+                              });
+                            }}
+                            onMouseLeave={() => setHoveredVacation(null)}
+                          >
+                            <span className="vacation-name">{vac.name}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))}
                 </div>
-                {bars}
-              </div>
-
-
-
-
-            ))}
+              );
+            })}
           </div>
         </>}
 
 
 
       </div>
+      {hoveredVacation && (
+        <div
+          className="vacation-popover"
+          style={{
+            position: "fixed",
+            top: hoveredVacation.y + 12,  // чуть ниже курсора
+            left: hoveredVacation.x + 12, // чуть правее курсора
+            transform: "translate(0, 0)",
+          }}
+        >
+          <div style={{ marginBottom: 10 }}><strong>{hoveredVacation.name}</strong></div>
+          <div>{formatDateShort(hoveredVacation.start)} - {formatDateShort(hoveredVacation.end)}</div>
+          {hoveredVacation.reason && <div>{hoveredVacation.reason}</div>}
+        </div>
+      )}
     </>
 
   )
