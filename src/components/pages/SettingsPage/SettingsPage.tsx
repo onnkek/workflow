@@ -15,7 +15,10 @@ const SettingsPage = () => {
     <>
       <div className="app-container">
         <div className="settings-page row">
-          <div className="col-4">
+          <div className="settings">
+            <DatePage />
+          </div>
+          {/* <div className="col-4">
             <Sidebar />
           </div>
           <div className="settings-page-body col-8">
@@ -27,7 +30,7 @@ const SettingsPage = () => {
               <Route path="notifications" element={<NotificationsPage />} />
               <Route path="date" element={<DatePage />} />
             </Routes>
-          </div>
+          </div> */}
 
         </div>
       </div>

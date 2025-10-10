@@ -368,7 +368,8 @@ export const removeWorking = createAsyncThunk<IWorking[], IWorking, { state: Roo
 
 type PayloadType = {
   start: string
-  end: string
+  end: string,
+  name: string
 }
 
 export const addVacation = createAsyncThunk<IVacation, PayloadType, { state: RootState }>(
@@ -380,7 +381,7 @@ export const addVacation = createAsyncThunk<IVacation, PayloadType, { state: Roo
       id: Math.random(),
       start: payload.start,
       end: payload.end,
-      name: "TEST"
+      name: payload.name
     }
 
     const response = await new PlannerAPIService().addVacation(newVacation)

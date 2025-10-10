@@ -16,6 +16,7 @@ const DatePage = () => {
   const weekend = useAppSelector(state => state.settings.date.weekend)
   const [vacationStart, setVacationStart] = useState("")
   const [vacationEnd, setVacationEnd] = useState("")
+  const [vacationName, setVacationName] = useState("")
   const [holiday, setHoliday] = useState("")
   const [birthday, setBirthday] = useState("")
   const [birthdayName, setBirthdayName] = useState("")
@@ -62,10 +63,10 @@ const DatePage = () => {
   }
 
   const addVacationHandler = () => {
-    dispatch(addVacation({ start: vacationStart, end: vacationEnd }))
+    dispatch(addVacation({ start: vacationStart, end: vacationEnd, name: vacationName }))
   }
   const removeVacationHandler = (id: number) => {
-    dispatch(removeVacation({ id: id, start: vacationStart, end: vacationEnd, name: "TEST" }))
+    dispatch(removeVacation({ id: id, start: vacationStart, end: vacationEnd, name: "" }))
   }
 
   const vacationStartChangeHandler = (e: ChangeEvent<HTMLInputElement>) => {
@@ -74,7 +75,9 @@ const DatePage = () => {
   const vacationEndChangeHandler = (e: ChangeEvent<HTMLInputElement>) => {
     setVacationEnd(e.target.value)
   }
-
+  const vacationChangeNameHandler = (e: ChangeEvent<HTMLInputElement>) => {
+    setVacationName(e.target.value)
+  }
 
   const holidayContent = holidays.map(day =>
     <div className="input-group mt-2" key={day.id}>
@@ -132,6 +135,8 @@ const DatePage = () => {
 
   const vacationContent = vacations.map(vacation =>
     <div className="input-group mt-2" key={vacation.id}>
+
+      <span className="input-group-text" style={{ display: "block", width: "30%" }} id="basic-addon1">{vacation.name}</span>
       <span className="noti-options-label input-group-text">From</span>
       <input
         type="date"
@@ -233,6 +238,13 @@ const DatePage = () => {
                 Create new vacation period
               </label>
               <div className="input-group">
+                <span className="input-group-text" id="basic-addon1">Name</span>
+                <input
+                  type="text"
+                  className="form-control add-form-date"
+                  value={vacationName}
+                  onChange={vacationChangeNameHandler}
+                />
                 <span className="noti-options-label input-group-text">From</span>
                 <input
                   type="date"

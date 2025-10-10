@@ -12,7 +12,7 @@ const Header = () => {
 				<div className='header-right'>
 					<Link className='header-link' to='/'>
 						<img src={logo} className='header-logo-icon'/>
-						<span className='header-logo'>Planner</span>
+						<span className='header-logo'>Workflow</span>
 					</Link>
 				</div>
 			</div>
