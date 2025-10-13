@@ -4,80 +4,24 @@ import { useAppDispatch, useAppSelector } from "../../../models/Hook"
 import { getSettings, IDate } from "../../../redux/SettingsSlice"
 import { Status } from "../../../models/Status"
 import CalendarWidget from "../../widgets/CalendarWidget/CalendarWidget"
-import { getCalendarClasses, getDaysInMonth, getNumberOfEmpty } from "../../../utils/date"
 
 const CalendarPage = () => {
   const dispatch = useAppDispatch()
-  const [settings, setSettings] = useState(false)
-  const currentYear = new Date().getFullYear()
   const dateSettings = useAppSelector(state => state.settings.date)
   const [select, setSelect] = useState(new Date().getMonth() + 1);
+  const [selectYear, setSelectYear] = useState(new Date().getFullYear());
   const status = useAppSelector(state => state.settings.status)
   const months = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
 
-  /////////////
-
   const dayNames = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
-  const workExceptions = [
-    { date: "2025-01-01", hours: 0, reason: "Новогодние каникулы" },
-    { date: "2025-01-02", hours: 0, reason: "Новогодние каникулы" },
-    { date: "2025-01-03", hours: 0, reason: "Новогодние каникулы" },
-    { date: "2025-01-04", hours: 0, reason: "Новогодние каникулы" },
-    { date: "2025-01-05", hours: 0, reason: "Новогодние каникулы" },
-    { date: "2025-01-06", hours: 0, reason: "Новогодние каникулы" },
-    { date: "2025-01-08", hours: 0, reason: "Новогодние каникулы" },
-    { date: "2025-02-23", hours: 0, reason: "День защитника отечества" },
-    { date: "2025-03-08", hours: 0, reason: "Международный женский день" },
-    { date: "2025-05-01", hours: 0, reason: "Праздник Весны и Труда" },
-    { date: "2025-05-09", hours: 0, reason: "День Победы" },
-    { date: "2025-06-12", hours: 0, reason: "День России" },
-    { date: "2025-11-04", hours: 0, reason: "День народного единства" },
 
-    { date: "2025-03-07", hours: 6, reason: "Предпраздничный день" },
-    { date: "2025-11-01", hours: 7.25, reason: "Предпраздничный день" },
-    { date: "2025-04-30", hours: 7, reason: "Для соблюдения баланса" },
-    { date: "2025-06-11", hours: 7, reason: "Для соблюдения баланса" },
-    { date: "2025-12-30", hours: 7, reason: "Для соблюдения баланса" },
+  const getMonthFromObject = (date: { day: number, month: number, year: number }, fix: boolean) => {
+    const months = ["январь", "февраль", "март", "апрель", "май", "июнь", "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь"]
+    const months2 = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"]
 
-    { date: "2026-01-01", hours: 0, reason: "Новогодние каникулы" },
-    { date: "2026-01-02", hours: 0, reason: "Новогодние каникулы" },
-    { date: "2026-01-03", hours: 0, reason: "Новогодние каникулы" },
-    { date: "2026-01-04", hours: 0, reason: "Новогодние каникулы" },
-    { date: "2026-01-05", hours: 0, reason: "Новогодние каникулы" },
-    { date: "2026-01-06", hours: 0, reason: "Новогодние каникулы" },
-    { date: "2026-01-07", hours: 0, reason: "Новогодние каникулы" },
-    { date: "2026-01-08", hours: 0, reason: "Новогодние каникулы" },
-    { date: "2026-01-09", hours: 0, reason: "Новогодние каникулы" },
-    { date: "2026-02-23", hours: 0, reason: "День защитника отечества" },
-    { date: "2026-03-08", hours: 0, reason: "Международный женский день" },
-    { date: "2026-05-01", hours: 0, reason: "Праздник Весны и Труда" },
-    { date: "2026-05-09", hours: 0, reason: "День Победы" },
-    { date: "2026-06-12", hours: 0, reason: "День России" },
-    { date: "2026-11-04", hours: 0, reason: "День народного единства" },
-
-    { date: "2026-03-07", hours: 6, reason: "Предпраздничный день" },
-    { date: "2026-11-01", hours: 7.25, reason: "Предпраздничный день" },
-    { date: "2026-04-30", hours: 7, reason: "Для соблюдения баланса" },
-    { date: "2026-06-11", hours: 7, reason: "Для соблюдения баланса" },
-    { date: "2026-12-30", hours: 7, reason: "Для соблюдения баланса" },
-  ];
-  const getWeekOfMonth = (year: number, month: number) => {
-    const first = new Date(year, month, 1);
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const startWeekDay = (first.getDay() + 6) % 7; // 0 = Пн
-
-    const weeks: (number | null)[][] = [];
-    let day = 1 - startWeekDay;
-    while (day <= daysInMonth) {
-      const week = Array.from({ length: 7 }, (_, i) => {
-        const d = day + i;
-        return d >= 1 && d <= daysInMonth ? d : null;
-      });
-      weeks.push(week);
-      day += 7;
-    }
-    return weeks;
+    return `${fix ? date.day : ""} ${fix ? months2[date.month] : months[date.month]} ${fix ? date.year : ""}`
   }
+
   const getWeeksWithAdjacentDays = (year: number, month: number) => {
     const result: { day: number, monthOffset: number }[][] = [];
     const firstDay = new Date(year, month, 1);
@@ -143,27 +87,116 @@ const CalendarPage = () => {
     return rows;
   };
 
-  const weeks = getWeeksWithAdjacentDays(currentYear, select - 1);
+  const weeks = getWeeksWithAdjacentDays(selectYear, select - 1);
 
   const contextMenuHandler = (event: MouseEvent<HTMLDivElement>) => {
     event.preventDefault();
     event.stopPropagation();
+    setHoveredDay(null)
+    setHoveredVacation(null)
     setSelect(-1);
   }
+  const monthsContextMenuHandler = (event: MouseEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setHoveredDay(null)
+    setHoveredVacation(null)
+    setSelectYear(-1);
+  }
 
-  const getWorkHoursForDate = (date: Date, exceptions: { date: string, hours: number }[]) => {
-    const exception = exceptions.find((e) => new Date(e.date).toDateString() === date.toDateString());
-    if (exception) {
-      return exception.hours;
-    }
+  type WorkDayInfo = {
+    hours: number
+    reason?: string
+    type: "regular" | "holiday" | "short" | "transferFrom" | "transferTo" | "weekend";
+  }
+  const BASE_HOURS = {
+    default: 8.25,
+    friday: 7
+  }
+
+  const sameLocalDate = (a: Date, b: Date) => {
+    return (
+      a.getFullYear() === b.getFullYear() &&
+      a.getMonth() === b.getMonth() &&
+      a.getDate() === b.getDate()
+    );
+  }
+
+  const sameDateWithoutYear = (a: Date, b: Date) => {
+    return (
+      a.getMonth() === b.getMonth() &&
+      a.getDate() === b.getDate()
+    );
+  }
+
+  const getWorkDayInfo = (date: Date): WorkDayInfo => {
     const day = date.getDay();
+    let hours: number | undefined;
+    const reasons: string[] = [];
+    let type: WorkDayInfo["type"] = "regular";
+
+    const holiday = dateSettings.holidays.find(h => sameDateWithoutYear(date, new Date(h.day)));
+    if (holiday) {
+      hours = 0;
+      reasons.push(holiday.name);
+      type = "holiday";
+    }
+
+    const transfer = dateSettings.transfers.find(t =>
+      sameLocalDate(date, new Date(t.from)) ||
+      sameLocalDate(date, new Date(t.to))
+    );
+    if (transfer) {
+      if (sameLocalDate(date, new Date(transfer.from))) {
+        const short = dateSettings.exceptions.find(s => sameDateWithoutYear(new Date(transfer.from), new Date(s.date)));
+        if (hours === undefined) {
+          hours = short ? short.time : (day === 5 ? BASE_HOURS.friday : BASE_HOURS.default);
+        }
+        reasons.push(transfer.name);
+        type = type === "holiday" ? type : "transferFrom";
+      }
+      if (sameLocalDate(date, new Date(transfer.to))) {
+        hours = 0;
+        reasons.push(transfer.name);
+        type = type === "holiday" ? type : "transferTo";
+      }
+    }
+
+    const short = dateSettings.exceptions.find(e => sameDateWithoutYear(date, new Date(e.date)));
+    if (short) {
+      if (hours === undefined) {
+        hours = short.time;
+      }
+      reasons.push(short.name);
+      if (type === "regular") {
+        type = "short";
+      }
+    }
     if (day === 0 || day === 6) {
-      return 0;
+      if (hours === undefined) {
+        hours = 0;
+      }
+      if (!reasons.length) {
+        reasons.push("Выходной день");
+      }
+      if (type === "regular") {
+        type = "weekend";
+      }
     }
-    if (day === 5) {
-      return 7;
+    if (hours === undefined) {
+      if (day === 5) {
+        reasons.push("Рабочий день (Пятница)");
+        hours = BASE_HOURS.friday;
+      } else {
+        reasons.push("Рабочий день");
+        hours = BASE_HOURS.default;
+      }
     }
-    return 8.25;
+    return {
+      hours,
+      reason: reasons.join(", "),
+      type
+    };
   }
 
   const formatHours = (hours: number) => {
@@ -187,22 +220,42 @@ const CalendarPage = () => {
   }
   const calendarContent = <>
     {months.map(month =>
-      <CalendarWidget
-        date={`${currentYear + 1}-${month}-${1}`}
-        key={Math.random()}
-        id={Math.random()}
-        onClick={() => setSelect(month)}
-      />
+      <div style={{ padding: "10px", cursor: "pointer" }} key={Math.random()}>
+        <CalendarWidget
+          date={`${selectYear + 1}-${month}-${1}`}
+          className={`${month === new Date().getMonth() + 1 && selectYear === new Date().getFullYear() && "current-month"}`}
+          id={Math.random()}
+          onClick={() => setSelect(month)}
+        />
+      </div>
+
     )}
   </>
-  const colors = ["#4caf5055", "#2196f355", "#ff980055", "#e91e6355", "#9c27b055", "#ff572255"];
+  const yearsContent = <>
+    {Array.from({ length: new Date().getFullYear() + 5 - (new Date().getFullYear() - 5) + 1 }, (_, i) => new Date().getFullYear() - 5 + i).map(year =>
+      <div
+        key={year}
+        className={`year${year === new Date().getFullYear() ? " current-year" : ""}`}
+        onClick={() => setSelectYear(year)}
+      >{year}</div>
+    )}
+  </>
+
+  const colors = [
+    "#3b82f655", "#10b98155", "#f59e0b55", "#ef444455", "#8b5cf655",
+    "#06b6d455", "#ec489955", "#84cc1655", "#fb923c55", "#dc262655",
+    "#4338ca55", "#34d39955", "#a855d755", "#eab30855", "#14b8a655"
+  ];
+  const colorMap = new Map<string, string>();
+  let colorIndex = 0;
   function getColorForName(name: string) {
-    let hash = 0;
-    for (let i = 0; i < name.length; i++) {
-      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    if (colorMap.has(name)) {
+      return colorMap.get(name);
     }
-    const index = Math.abs(hash) % colors.length;
-    return colors[index];
+    const color = colors[colorIndex % colors.length];
+    colorMap.set(name, color);
+    colorIndex++;
+    return color;
   }
   const [hoveredVacation, setHoveredVacation] = useState<null | {
     id: number
@@ -213,15 +266,30 @@ const CalendarPage = () => {
     end: string
     reason?: string
   }>(null);
+  const [hoveredDay, setHoveredDay] = useState<null | {
+    id: number
+    x: number
+    y: number
+    date: { day: number, month: number, year: number }
+    reason?: string
+  }>(null);
   return (
     <>
-      <div className="months-view">
-        {select == -1 && calendarContent}
-      </div>
+      {selectYear == -1 && <div className="years-view">
+        {yearsContent}
+      </div>}
+      {selectYear != -1 && select == -1 && <div style={{ fontSize: "30px", textAlign: "center", marginTop: "20px" }}>{selectYear}</div>}
+      {selectYear != -1 && select != -1 && <div style={{ fontSize: "30px", textAlign: "center", marginTop: "20px" }}>{getMonthFromObject({ day: 1, month: select - 1, year: selectYear }, false)} {selectYear}</div >}
+      {
+        select == -1 && selectYear != -1 &&
+        <div className="months-view" onContextMenu={monthsContextMenuHandler}>
+          {calendarContent}
+        </div>
+      }
       <div className="month-view" onContextMenu={contextMenuHandler}>
 
 
-        {select != -1 && <>
+        {select != -1 && selectYear != -1 && <>
           <div className="month-grid">
             {dayNames.map(n => (
               <div key={n}>{n}</div>
@@ -231,8 +299,8 @@ const CalendarPage = () => {
           <div className="calendar-grid">
             {weeks.map((week, weekIndex) => {
               // вычисляем реальные даты начала и конца недели
-              const firstVisibleDay = new Date(currentYear, select - 1 + week[0].monthOffset, week[0].day);
-              const lastVisibleDay = new Date(currentYear, select - 1 + week[6].monthOffset, week[6].day);
+              const firstVisibleDay = new Date(selectYear, select - 1 + week[0].monthOffset, week[0].day);
+              const lastVisibleDay = new Date(selectYear, select - 1 + week[6].monthOffset, week[6].day);
 
               // фильтруем отпуска, которые хоть как-то пересекаются с неделей
               const weekVacations = dateSettings.vacations.filter(v => {
@@ -242,13 +310,13 @@ const CalendarPage = () => {
               });
 
               // распределяем их по строкам, чтобы не налегали
-              const vacationRows = assignVacationRows(weekVacations, select - 1, currentYear);
+              const vacationRows = assignVacationRows(weekVacations, select - 1, selectYear);
 
               return (
                 <div key={weekIndex} className="week">
                   <div className="day-wrapper">
                     {week.map(({ day, monthOffset }, i) => {
-                      const date = new Date(currentYear, select - 1 + monthOffset, day);
+                      const date = new Date(selectYear, select - 1 + monthOffset, day);
                       const isOtherMonth = monthOffset !== 0;
                       const isToday = date.toDateString() === new Date().toDateString();
 
@@ -258,29 +326,41 @@ const CalendarPage = () => {
                           return bd.getMonth() === select - 1 && bd.getDate() === day;
                         })
                         : [];
-
-                      const hasBirthday = birthdaysToday.length > 0;
-                      const workHours = getWorkHoursForDate(date, workExceptions);
+                      const workHours = getWorkDayInfo(date);
 
                       const classNames = [
                         "day",
                         isToday && "today",
                         isOtherMonth && "other-month",
-                        hasBirthday && "birthday",
+                        workHours.type
                       ]
                         .filter(Boolean)
                         .join(" ");
                       return (
-                        <div className={classNames} key={i}>
+                        <div
+                          className={classNames}
+                          key={i}
+                          onMouseMove={(e) => {
+                            setHoveredDay({
+                              id: day,
+                              x: e.clientX,
+                              y: e.clientY,
+                              date: { day: day, month: select - 1 + monthOffset, year: selectYear },
+                              reason: workHours.reason,
+                            });
+                          }}
+                          onMouseLeave={() => setHoveredDay(null)}
+                        >
                           {birthdaysToday.map(b => (
                             <div key={b.id} className="birthday-name">
                               🍰 {b.name}
                             </div>
                           ))}
                           <div className="work-hours">
-                            {workHours > 0 ? formatHours(workHours) : "00:00"}
+                            {workHours.hours > 0 ? formatHours(workHours.hours) : "00:00"}
                           </div>
-                          <div className="day-number">{day}</div>
+                          <div className="day-number"
+                          >{day}</div>
                         </div>
                       );
                     })}
@@ -344,21 +424,40 @@ const CalendarPage = () => {
 
 
       </div>
-      {hoveredVacation && (
-        <div
-          className="vacation-popover"
-          style={{
-            position: "fixed",
-            top: hoveredVacation.y + 12,  // чуть ниже курсора
-            left: hoveredVacation.x + 12, // чуть правее курсора
-            transform: "translate(0, 0)",
-          }}
-        >
-          <div style={{ marginBottom: 10 }}><strong>{hoveredVacation.name}</strong></div>
-          <div>{formatDateShort(hoveredVacation.start)} - {formatDateShort(hoveredVacation.end)}</div>
-          {hoveredVacation.reason && <div>{hoveredVacation.reason}</div>}
-        </div>
-      )}
+      {
+        hoveredVacation && (
+          <div
+            className="vacation-popover"
+            style={{
+              position: "fixed",
+              top: hoveredVacation.y + 12,
+              left: hoveredVacation.x + 12,
+              transform: "translate(0, 0)",
+            }}
+          >
+            <div style={{ marginBottom: 10 }}><strong>{hoveredVacation.name}</strong></div>
+            <div>{formatDateShort(hoveredVacation.start)} - {formatDateShort(hoveredVacation.end)}</div>
+            {hoveredVacation.reason && <div>{hoveredVacation.reason}</div>}
+          </div>
+        )
+      }
+      {
+        hoveredDay && (
+          <div
+            className="vacation-popover"
+            style={{
+              position: "fixed",
+              top: hoveredDay.y + 12,
+              left: hoveredDay.x + 12,
+              transform: "translate(0, 0)",
+            }}
+          >
+            <div style={{ marginBottom: 10 }}><strong>{getMonthFromObject(hoveredDay.date, true)}</strong></div>
+            <div></div>
+            {hoveredDay.reason && <div>{hoveredDay.reason}</div>}
+          </div>
+        )
+      }
     </>
 
   )

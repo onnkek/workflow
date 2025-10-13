@@ -30,7 +30,7 @@ const ControlPanel = () => {
                 <div className="tab-link">Notes</div>
               </NavLink>
             </li> */}
-            <li>
+            {/* <li>
               <NavLink to="/" className={setActive}>
                 <div className="tab-link">Calendar</div>
               </NavLink>
@@ -39,7 +39,7 @@ const ControlPanel = () => {
               <NavLink to="/settings" className={setActive}>
                 <div className="tab-link">Settings</div>
               </NavLink>
-            </li>
+            </li> */}
           </ul>
         </div>
         <div className="control-filter">

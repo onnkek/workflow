@@ -159,41 +159,41 @@ export const getNumberOfEmpty = (month: number, year: number): number | undefine
 	}
 }
 
-export const getCalendarClasses = (settingsDate: IDate, date: string): string => {
-	let classes = ""
-	for (const holiday of settingsDate.holidays) {
-		if (new Date(holiday.day).toDateString() === new Date(date).toDateString()) {
-			classes += " holiday"
-		}
-	}
-	for (const birthday of settingsDate.birthdays) {
-		if (new Date(birthday.day).toDateString() === new Date(date).toDateString()) {
-			classes += " birthday"
-		}
-	}
-	for (const vacation of settingsDate.vacations) {
-		if (new Date(vacation.start).toDateString() === new Date(date).toDateString()) {
-			classes += " vacation-start"
-		}
-		if (new Date(vacation.end).toDateString() === new Date(date).toDateString()) {
-			classes += " vacation-end"
-		}
-		if (new Date(vacation.end) > new Date(date) && new Date(vacation.start) < new Date(date)) {
-			classes += " vacation"
-		}
-	}
-	if (new Date(date).toDateString() === new Date().toDateString()) {
-		classes += " current-day"
-	}
-	const isWorkingDays = settingsDate.workings.find(x => new Date(x.day).toDateString() === new Date(date).toDateString())
-	if (settingsDate.weekend.highlight && !isWorkingDays) {
-		const dayCode = getDayCode(new Date(date).getDate(), new Date(date).getMonth() + 1, new Date(date).getFullYear())
-		if (dayCode === 0 || dayCode === 1) {
-			classes += " weekend"
-		}
-	}
-	return classes
-}
+// export const getCalendarClasses = (settingsDate: IDate, date: string): string => {
+// 	let classes = ""
+// 	for (const holiday of settingsDate.holidays) {
+// 		if (new Date(holiday.day).toDateString() === new Date(date).toDateString()) {
+// 			classes += " holiday"
+// 		}
+// 	}
+// 	for (const birthday of settingsDate.birthdays) {
+// 		if (new Date(birthday.day).toDateString() === new Date(date).toDateString()) {
+// 			classes += " birthday"
+// 		}
+// 	}
+// 	for (const vacation of settingsDate.vacations) {
+// 		if (new Date(vacation.start).toDateString() === new Date(date).toDateString()) {
+// 			classes += " vacation-start"
+// 		}
+// 		if (new Date(vacation.end).toDateString() === new Date(date).toDateString()) {
+// 			classes += " vacation-end"
+// 		}
+// 		if (new Date(vacation.end) > new Date(date) && new Date(vacation.start) < new Date(date)) {
+// 			classes += " vacation"
+// 		}
+// 	}
+// 	if (new Date(date).toDateString() === new Date().toDateString()) {
+// 		classes += " current-day"
+// 	}
+// 	const isWorkingDays = settingsDate.workings.find(x => new Date(x.day).toDateString() === new Date(date).toDateString())
+// 	if (settingsDate.weekend.highlight && !isWorkingDays) {
+// 		const dayCode = getDayCode(new Date(date).getDate(), new Date(date).getMonth() + 1, new Date(date).getFullYear())
+// 		if (dayCode === 0 || dayCode === 1) {
+// 			classes += " weekend"
+// 		}
+// 	}
+// 	return classes
+// }
 
 export const getDaysBeforeVacation = (vacations: IVacation[]): number => {
 

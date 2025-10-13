@@ -14,7 +14,7 @@ const SettingsPage = () => {
   return (
     <>
       <div className="app-container">
-        <div className="settings-page row">
+        <div className="settings-page">
           <div className="settings">
             <DatePage />
           </div>

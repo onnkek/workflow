@@ -1,7 +1,7 @@
 import { IBadge } from "../models/Badge"
 import { INote } from "../models/Note"
 import ITask from "../models/Task"
-import { IBirthday, IHoliday, IVacation, IWeekend, IWorking } from "../redux/SettingsSlice"
+import { IBirthday, IException, IHoliday, ITransfer, IVacation, IWeekend, IWorking } from "../redux/SettingsSlice"
 
 export default class PlannerAPIService {
   _apiBase: string
@@ -166,9 +166,47 @@ export default class PlannerAPIService {
     })
     return response
   }
+  addTransfer = async (data: ITransfer) => {
+    const response = await fetch(`${this._apiBase}/${this._apiSettings}/transfers`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data)
+    })
+    return response
+  }
+  addException = async (data: IException) => {
+    const response = await fetch(`${this._apiBase}/${this._apiSettings}/exceptions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data)
+    })
+    return response
+  }
 
   removeHoliday = async (id: number) => {
     const response = await fetch(`${this._apiBase}/${this._apiSettings}/holidays/${id}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      }
+    })
+    return response
+  }
+  removeTransfer = async (id: number) => {
+    const response = await fetch(`${this._apiBase}/${this._apiSettings}/transfers/${id}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      }
+    })
+    return response
+  }
+  removeException = async (id: number) => {
+    const response = await fetch(`${this._apiBase}/${this._apiSettings}/exceptions/${id}`, {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",

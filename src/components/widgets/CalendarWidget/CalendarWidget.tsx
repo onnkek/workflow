@@ -1,6 +1,6 @@
 import React, { MouseEvent, useState } from "react"
 import "./CalendarWidget.sass"
-import { getCalendarClasses, getDaysInMonth, getMonthName, getNumberOfEmpty } from "../../../utils/date"
+import { getDaysInMonth, getMonthName, getNumberOfEmpty } from "../../../utils/date"
 import { useAppDispatch, useAppSelector } from "../../../models/Hook"
 import { updateCalendarWidget } from "../../../redux/WidgetsSlice"
 import { CaretLeftFill, CaretRightFill, CheckLg, GearFill } from "react-bootstrap-icons"
@@ -9,9 +9,10 @@ interface CalendarWidgetProps {
   date: string
   id: number
   onClick?: (event: MouseEvent<HTMLDivElement>) => void
+  className?: string
 }
 
-const CalendarWidget = React.memo(({ date, id, onClick }: CalendarWidgetProps) => {
+const CalendarWidget = React.memo(({ date, id, onClick, className }: CalendarWidgetProps) => {
   const dispatch = useAppDispatch()
   const [settings, setSettings] = useState(false)
   const [selectMonth, setSelectMonth] = useState(new Date(date).getMonth() + 1)
@@ -28,7 +29,7 @@ const CalendarWidget = React.memo(({ date, id, onClick }: CalendarWidgetProps) =
   }
 
   return (
-    <div className="calendarWidget" onClick={onClick}>
+    <div className={`calendarWidget ${className}`} onClick={onClick}>
       {settings ? (
         <>
 
@@ -97,7 +98,7 @@ const CalendarWidget = React.memo(({ date, id, onClick }: CalendarWidgetProps) =
           <div className="calendarWidget__header">{getMonthName(selectMonth)}</div>
           <div className="calendarWidget__grid">
             {getNumberOfEmpty(selectMonth, selectYear)! > 0 ? (new Array(getNumberOfEmpty(selectMonth, selectYear))).fill(1).map(x => <div key={Math.random()} />) : <></>}
-            {new Array(getDaysInMonth(selectYear, selectMonth)).fill(1).map((e, i) => i + 1).map(day => <div className={`${getCalendarClasses(dateSettings, `${selectYear}-${selectMonth}-${day}`)}`} key={Math.random()}><div data-month-id={selectMonth}>{day}</div></div>)}
+            {new Array(getDaysInMonth(selectYear, selectMonth)).fill(1).map((e, i) => i + 1).map(day => <div className={""} key={Math.random()}><div data-month-id={selectMonth}>{day}</div></div>)}
           </div>
           {edit && <button className="widget__settings" onClick={editHandler}><GearFill /></button>}
         </>

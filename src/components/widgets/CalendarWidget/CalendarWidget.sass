@@ -1,9 +1,9 @@
 .calendarWidget
-  background-color: #0f172a
+  background-color: #FFFFFF25
   border-radius: 10px
-  border: 1px solid #1e293b
-  width: 300px
-  height: 300px
+  // border: 1px solid #1e293b
+  width: 280px
+  height: 250px
   display: flex
   flex-direction: column
   justify-content: space-between
@@ -16,8 +16,8 @@
     align-self: flex-start
   &__grid
     display: grid
-    grid-template-columns: repeat(7, 40px)
-    grid-template-rows: repeat(5, 40px)
+    grid-template-columns: repeat(7, 35px)
+    grid-template-rows: repeat(5, 35px)
     align-items: center
     justify-items: center
     font-weight: 900
@@ -26,8 +26,8 @@
       display: flex
       justify-content: center
       align-items: center
-      width: 40px
-      height: 40px
+      width: 30px
+      height: 30px
       div
         font-family: 'Courier New', Courier, monospace
         padding: 10px
@@ -77,55 +77,3 @@
       border: 1px solid rgba(49, 132, 253, 1)
       &:hover
         border-color: rgba(49, 132, 253, 1)
-
-.vacation
-  color: white
-  background-color: #1e293b
-
-.vacation-start
-  color: white
-  background-color: #1e293b
-  border-top-left-radius: 8px
-  border-bottom-left-radius: 8px
-  div
-    height: inherit
-    background-color: #475569
-    border-radius: 8px
-
-.vacation-end
-  color: white
-  background-color: #1e293b
-  border-top-right-radius: 8px
-  border-bottom-right-radius: 8px
-  div
-    height: inherit
-    background-color: #475569
-    border-radius: 8px
-.vacation-solo
-  color: white
-  background-color: #1e293b
-  border-radius: 8px
-  div
-    height: inherit
-    background-color: #475569
-    border-radius: 8px
-
-.weekend-start,
-.weekend,
-.weekend-end,
-.weekend-solo
-  color: #5c697c
-
-.holiday-start,
-.holiday,
-.holiday-end,
-.holiday-solo
-  color: red
-
-.birthday
-  color: #00FF00
-
-.current-day
-  div
-    border: 2px solid #ff5599
-    border-radius: 8px

@@ -2,7 +2,7 @@
   "name": "planner",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://onnkek.github.io/planner",
+  "homepage": "https://onnkek.github.io/workflow",
   "dependencies": {
     "@reduxjs/toolkit": "^1.9.5",
     "@testing-library/jest-dom": "^5.16.5",
