@@ -248,7 +248,7 @@ const CalendarPage = () => {
   ];
   const colorMap = new Map<string, string>();
   let colorIndex = 0;
-  function getColorForName(name: string) {
+  const getColorForName = (name: string) => {
     if (colorMap.has(name)) {
       return colorMap.get(name);
     }
@@ -383,8 +383,10 @@ const CalendarPage = () => {
                         const startDayOfWeek = (visibleStart.getDay() + 6) % 7;
                         const endDayOfWeek = (visibleEnd.getDay() + 6) % 7;
 
-                        const left = (startDayOfWeek / 7) * 100;
-                        const width = ((endDayOfWeek - startDayOfWeek + 1) / 7) * 100;
+                        const left = (startDayOfWeek / 7) * 100 + 0.2;
+                        const width = ((endDayOfWeek - startDayOfWeek + 1) / 7) * 100 - 0.4;
+
+
 
 
                         return (

@@ -12,7 +12,7 @@ export default class PlannerAPIService {
   _apiWidgets: string
 
   constructor() {
-    this._apiBase = "http://localhost:8000"
+    this._apiBase = "http://zavgorodinir.oduur.so:8000"
     this._apiTasks = "tasks"
     this._apiBadges = "badges"
     this._apiNotes = "notes"

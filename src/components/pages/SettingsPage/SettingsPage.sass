@@ -1,9 +1,12 @@
 @import '../../../main.sass'
 
 .settings-page
-    width: inherit
+  width: inherit
+  display: flex
+  justify-content: center
+  align-items: center
     // width: 100%
-    .settings
+  .settings
         // margin: 0
         // padding: 0
 
@@ -12,3 +15,29 @@
 
     // width: 100%
     // margin: 0 auto
+
+.auth
+  border-radius: 8px
+  // border: 1px solid var(--main-border-color)
+  margin-top: 50%
+  display: flex
+  flex-direction: column
+  justify-content: center
+  align-items: start
+  padding: 50px
+
+.auth-input
+  width: 100%
+  position: relative
+
+.auth-btn
+  margin-top: 50px
+
+.error-massage
+  color: red
+  margin-top: 0px
+  position: absolute
+
+.input-label
+  margin-bottom: 5px
+  font-size: 14px

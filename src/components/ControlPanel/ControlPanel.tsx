@@ -30,16 +30,21 @@ const ControlPanel = () => {
                 <div className="tab-link">Notes</div>
               </NavLink>
             </li> */}
-            {/* <li>
+            <li>
               <NavLink to="/" className={setActive}>
                 <div className="tab-link">Calendar</div>
+              </NavLink>
+            </li>
+            <li>
+              <NavLink to="/vacations" className={setActive}>
+                <div className="tab-link">Vacations</div>
               </NavLink>
             </li>
             <li>
               <NavLink to="/settings" className={setActive}>
                 <div className="tab-link">Settings</div>
               </NavLink>
-            </li> */}
+            </li>
           </ul>
         </div>
         <div className="control-filter">

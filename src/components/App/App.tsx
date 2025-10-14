@@ -1,4 +1,4 @@
-import React, { MouseEvent } from "react"
+import React, { MouseEvent, useState } from "react"
 import "./App.sass"
 import Header from "../Header/Header"
 import { Route, Routes } from "react-router-dom"
@@ -10,6 +10,7 @@ import { closeContextMenu, closeIconsMenu } from "../../redux/NotesSlice"
 import GeneralPage from "../pages/GeneralPage/GeneralPage"
 import ActualTaskPage from "../pages/ActualTaskPage/ActualTaskPage"
 import OldTasksPage from "../pages/OldTasksPage/OldTasksPage"
+import VacationPage from "../pages/VacationPage/VacationPage"
 
 const App = () => {
   const dispatch = useAppDispatch()
@@ -17,6 +18,8 @@ const App = () => {
     dispatch(closeContextMenu())
     dispatch(closeIconsMenu())
   }
+
+
 
   return (
     <div onClick={closeMenusHandler} className="app">
@@ -27,6 +30,7 @@ const App = () => {
         {/* <Route path="/old" element={<OldTasksPage />} /> */}
         {/* <Route path="/notes" element={<NotesPage />} /> */}
         {/* <Route path="/calendar" element={<CalendarPage />} /> */}
+        <Route path="/vacations" element={<VacationPage year={2025} />} />
         <Route path="/settings/*" element={<SettingsPage />} />
 
       </Routes>
