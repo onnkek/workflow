@@ -1,10 +1,21 @@
+.vacationPage
+  padding: 0px 40px
+  display: flex
+  position: relative
+
 .year-timeline
   position: relative
-  overflow-x: hidden
+  // overflow-x: hidden
   overflow-y: hidden
-  height: 400px
+  height: 560px
   // border: 1px solid #ccc
   background: transparent
+  user-select: none
+  &::-webkit-scrollbar
+    height: 10px
+  &::-webkit-scrollbar-thumb
+    background-color: #ffffff30
+    border-radius: 10px
 
 .timeline-content
   position: relative
@@ -49,3 +60,4 @@
   color: #fff
   white-space: nowrap
   cursor: pointer
+

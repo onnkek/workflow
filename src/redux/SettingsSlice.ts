@@ -57,6 +57,7 @@ export interface IDate {
 
 
 interface ISettings {
+  auth: boolean
   date: IDate
   status: Status
   settingStatus: Status
@@ -72,6 +73,7 @@ interface ISettings {
 }
 
 const initialState: ISettings = {
+  auth: false,
   date: {
     holidays: [],
     birthdays: [],
@@ -231,6 +233,17 @@ const SettingsSlice = createSlice({
         state.settingStatus = Status.Failed
       })
 
+      .addCase(tryAuth.pending, (state: ISettings) => {
+        state.settingStatus = Status.Loading
+      })
+      .addCase(tryAuth.fulfilled, (state: ISettings, action) => {
+        state.settingStatus = Status.Succeeded
+        state.auth = true
+      })
+      .addCase(tryAuth.rejected, (state: ISettings, action) => {
+        state.settingStatus = Status.Failed
+      })
+
 
   }
 })
@@ -241,6 +254,24 @@ export const getSettings = createAsyncThunk(
   async () => {
     return await new PlannerAPIService().getSettings()
   })
+
+
+export const tryAuth = createAsyncThunk<boolean, { password: string }, { state: RootState }>(
+
+  'settings/tryAuth',
+  async (payload: { password: string }, { rejectWithValue, getState, dispatch }) => {
+
+
+    const response = await new PlannerAPIService().tryAuth({ password: payload.password })
+    if (!response.ok) {
+      return rejectWithValue('Can\'t delete post! Server error!')
+    }
+    setTimeout(() => {
+      dispatch(setSettingStatusIdle())
+    }, 1000)
+    return true;
+  }
+)
 
 export const changeWeekend = createAsyncThunk<IWeekend, IWeekend, { state: RootState }>(
 

@@ -10,6 +10,7 @@ export default class PlannerAPIService {
   _apiNotes: string
   _apiSettings: string
   _apiWidgets: string
+  _apiAuth: string
 
   constructor() {
     this._apiBase = "http://zavgorodinir.oduur.so:8000"
@@ -18,7 +19,21 @@ export default class PlannerAPIService {
     this._apiNotes = "notes"
     this._apiSettings = "settings"
     this._apiWidgets = "widgets"
+    this._apiAuth = "auth"
   }
+
+
+  tryAuth = async (data: { password: string }) => {
+    const response = await fetch(`${this._apiBase}/${this._apiAuth}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data)
+    })
+    return response
+  }
+
 
   getTasks = async () => {
     const response = await fetch(`${this._apiBase}/${this._apiTasks}`, {

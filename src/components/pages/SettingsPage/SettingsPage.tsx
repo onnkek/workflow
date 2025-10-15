@@ -1,4 +1,4 @@
-import React, { Component, useState } from "react"
+import React, { Component, useEffect, useState } from "react"
 import "./SettingsPage.sass"
 import ThemePage from "./ThemePage/ThemePage"
 import Sidebar from "./Sidebar/Sidebar"
@@ -8,18 +8,34 @@ import TimetaskPage from "./TimetaskPage/TimetaskPage"
 import NotificationsPage from "./NotificationsPage/NotificationsPage"
 import BadgesPage from "./BadgesPage/BadgesPage"
 import DatePage from "./DatePage/DatePage"
+import { useAppDispatch, useAppSelector } from "../../../models/Hook"
+import { tryAuth } from "../../../redux/SettingsSlice"
+import { Status } from "../../../models/Status"
 
 const SettingsPage = () => {
-  const [auth, setAuth] = useState(false);
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
+  const dispatch = useAppDispatch()
+  const auth = useAppSelector(state => state.settings.auth)
+  const status = useAppSelector(state => state.settings.settingStatus)
+
+
   const loginHandler = () => {
-    if (password === "091077") {
-      setAuth(true);
-    } else {
+    dispatch(tryAuth({ password }))
+
+    // if (password === "091077") {
+    //   setAuth(true);
+    // } else {
+    //   setMessage("Incorrect password");
+    // }
+  }
+  useEffect(() => {
+    if (!auth && status === Status.Failed) {
       setMessage("Incorrect password");
     }
-  }
+  }, [auth, status])
+
+
   return (
     <>
       <div className="app-container">

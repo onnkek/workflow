@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from "react"
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react"
 import "./VacationPage.sass"
 import Note from "../../Note/Note"
 import { useAppDispatch, useAppSelector } from "../../../models/Hook"
@@ -18,8 +18,8 @@ const isLeapYear = (y: number) => {
   return (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
 }
 
-const getDayOfYear = (date: Date) => {
-  const start = new Date(date.getFullYear(), 0, 0);
+const getDayOfYear = (date: Date, targetYear: number) => {
+  const start = new Date(targetYear, 0, 0);
   const diff = date.getTime() - start.getTime();
   return Math.floor(diff / (1000 * 60 * 60 * 24));
 }
@@ -31,16 +31,20 @@ const formatDate = (str: string) => {
 
 
 const VacationPage = ({ year }: VacationPageType) => {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const pendingScrollLeft = useRef<number | null>(null);
   const [zoom, setZoom] = useState(1);
-
-  const minZoom = 0.3;
+  const [selected, setSelected] = useState<string[]>([]);
+  const minZoom = 0.1;
   const maxZoom = 5;
   const baseCellWidth = 20;
-  const totalDays = isLeapYear(year) ? 366 : 365;
+  const ZOOM_SENSITIVITY = 0.006;
+  const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
+  const totalDays = (isLeapYear(year) ? 366 : 365) + (isLeapYear(year + 1) ? 366 : 365);
   const dispatch = useAppDispatch()
   const dateSettings = useAppSelector(state => state.settings.date)
   const status = useAppSelector(state => state.settings.status)
+
 
   const cellWidth = baseCellWidth * zoom;
   useEffect(() => {
@@ -52,21 +56,27 @@ const VacationPage = ({ year }: VacationPageType) => {
     if (today.getFullYear() !== year) {
       return;
     }
-    const dayOfYear = getDayOfYear(today);
+    const dayOfYear = getDayOfYear(today, year);
     container.scrollLeft = dayOfYear * baseCellWidth * zoom - container.clientWidth / 2;
 
   }, [year])
 
   const today = new Date();
-  const todayPos = today.getFullYear() === year ? getDayOfYear(today) * cellWidth : -1;
+  const todayPos = today.getFullYear() === year ? getDayOfYear(today, year) * cellWidth : -1;
 
   const monthGrid = () => {
     const months = ["Янв", "Фев", "Мар", "Апр", "Май", "Июн", "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек"];
 
     const elems: JSX.Element[] = [];
     let dayIndex = 0;
-    for (let m = 0; m < 12; m++) {
-      const daysInMonth = new Date(year, m + 1, 0).getDate();
+    for (let m = 0; m < 24; m++) {
+      let targetYear;
+      if (m < 12) {
+        targetYear = year;
+      } else {
+        targetYear = year + 1;
+      }
+      const daysInMonth = new Date(targetYear, m + 1, 0).getDate();
       elems.push(
         <div
           key={`month-${m}`}
@@ -76,9 +86,9 @@ const VacationPage = ({ year }: VacationPageType) => {
             width: `${daysInMonth * cellWidth}px`
           }}
         >
-          <span>{months[m]}</span>
+          <span>{months[m % 12]} {targetYear}</span>
           <div className="days-row">
-            {Array.from({ length: daysInMonth }).map((_, i) => (
+            {zoom > 0.7 && Array.from({ length: daysInMonth }).map((_, i) => (
               <div
                 key={i}
                 className="day-cell"
@@ -94,10 +104,38 @@ const VacationPage = ({ year }: VacationPageType) => {
     }
     return elems;
   }
+
+
+
   const colors = [
-    "#3b82f655", "#10b98155", "#f59e0b55", "#ef444455", "#8b5cf655",
-    "#06b6d455", "#ec489955", "#84cc1655", "#fb923c55", "#dc262655",
-    "#4338ca55", "#34d39955", "#a855d755", "#eab30855", "#14b8a655"
+    "hsla(0, 70%, 40%, 0.7)",    // красный
+    "hsla(15, 70%, 40%, 0.7)",   // оранжевый
+    "hsla(30, 70%, 40%, 0.7)",   // желто-оранжевый
+    "hsla(45, 70%, 40%, 0.7)",   // желтый
+    "hsla(60, 70%, 40%, 0.7)",   // желто-зеленый
+    "hsla(90, 70%, 40%, 0.7)",   // зеленый
+    "hsla(120, 70%, 40%, 0.7)",  // ярко-зеленый
+    "hsla(150, 70%, 40%, 0.7)",  // бирюзовый
+    "hsla(180, 70%, 40%, 0.7)",  // голубой
+    "hsla(210, 70%, 40%, 0.7)",  // синий
+    "hsla(240, 70%, 40%, 0.7)",  // темно-синий
+    "hsla(270, 70%, 40%, 0.7)",  // фиолетовый
+    "hsla(300, 70%, 40%, 0.7)",  // ярко-фиолетовый
+    "hsla(330, 70%, 40%, 0.7)",  // розовый
+    "hsla(360, 70%, 40%, 0.7)",  // красно-розовый
+    // ещё 30 цветов с равномерным распределением оттенков
+    "hsla(12, 70%, 40%, 0.7)", "hsla(24, 70%, 40%, 0.7)", "hsla(36, 70%, 40%, 0.7)",
+    "hsla(48, 70%, 40%, 0.7)", "hsla(72, 70%, 40%, 0.7)", "hsla(84, 70%, 40%, 0.7)",
+    "hsla(96, 70%, 40%, 0.7)", "hsla(108, 70%, 40%, 0.7)", "hsla(132, 70%, 40%, 0.7)",
+    "hsla(144, 70%, 40%, 0.7)", "hsla(156, 70%, 40%, 0.7)", "hsla(168, 70%, 40%, 0.7)",
+    "hsla(192, 70%, 40%, 0.7)", "hsla(204, 70%, 40%, 0.7)", "hsla(216, 70%, 40%, 0.7)",
+    "hsla(228, 70%, 40%, 0.7)", "hsla(252, 70%, 40%, 0.7)", "hsla(264, 70%, 40%, 0.7)",
+    "hsla(276, 70%, 40%, 0.7)", "hsla(288, 70%, 40%, 0.7)", "hsla(312, 70%, 40%, 0.7)",
+    "hsla(324, 70%, 40%, 0.7)", "hsla(336, 70%, 40%, 0.7)", "hsla(348, 70%, 40%, 0.7)",
+    "hsla(6, 70%, 40%, 0.7)", "hsla(18, 70%, 40%, 0.7)", "hsla(42, 70%, 40%, 0.7)",
+    "hsla(78, 70%, 40%, 0.7)", "hsla(114, 70%, 40%, 0.7)", "hsla(150, 70%, 40%, 0.7)",
+    "hsla(186, 70%, 40%, 0.7)", "hsla(222, 70%, 40%, 0.7)", "hsla(258, 70%, 40%, 0.7)",
+    "hsla(294, 70%, 40%, 0.7)", "hsla(330, 70%, 40%, 0.7)"
   ];
   const colorMap = new Map<string, string>();
   let colorIndex = 0;
@@ -117,83 +155,244 @@ const VacationPage = ({ year }: VacationPageType) => {
   }, [status, dispatch])
 
 
-  const handleWheel = (e: React.WheelEvent) => {
-    // e.preventDefault();
+
+
+  const onWheelNative = useCallback((rawEvent: Event) => {
+    const e = rawEvent as WheelEvent;
+    e.preventDefault();
+
     const container = containerRef.current;
     if (!container) {
       return;
     }
 
     const rect = container.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
+    const cursorX = e.clientX - rect.left;
+    const prevScrollLeft = container.scrollLeft;
+    const prevScale = zoom;
+
+    const delta = e.deltaY;
+    const factor = Math.exp(-delta * ZOOM_SENSITIVITY);
+    const newScale = clamp(prevScale * factor, minZoom, maxZoom);
+
+    if (Math.abs(newScale - prevScale) < 1e-6) {
+      return prevScale;
+    }
+
+    const scaledPointerBefore = prevScrollLeft + cursorX;
+    const newScrollLeft = scaledPointerBefore * (newScale / prevScale) - cursorX;
+    pendingScrollLeft.current = newScrollLeft;
+    setZoom(newScale);
+    // requestAnimationFrame(() => {
+    //   container.scrollLeft = newScrollLeft;
+    // });
+  }, [zoom]);
+
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    if (!container) {
+      return;
+    }
+    if (pendingScrollLeft.current !== null) {
+      const maxScroll = container.scrollWidth - container.clientWidth;
+      const safeScroll = clamp(pendingScrollLeft.current, 0, maxScroll);
+      container.scrollLeft = safeScroll;
+      pendingScrollLeft.current = null;
+    }
+  });
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) {
+      return;
+    }
+    el.addEventListener("wheel", onWheelNative as EventListener, { passive: false });
+    return () => {
+      el.removeEventListener("wheel", onWheelNative as EventListener);
+    }
+  }, [onWheelNative])
+
+  const people = Array.from(new Set(dateSettings.vacations.map(v => v.name))).sort((a, b) => a.localeCompare(b, "ru", { sensitivity: "base" }));
+
+  const selectToggleHandler = (name: string) => {
+    let newSelected;
+    if (selected.find(x => x === name)) {
+      const index = selected.indexOf(name);
+      newSelected = [...selected.slice(0, index), ...selected.slice(index + 1)];
+    } else {
+      newSelected = [...selected];
+      newSelected.push(name);
+    }
+    setSelected(newSelected);
+  }
 
 
+  const isDragging = useRef(false);
+  const startX = useRef(0);
+  const scrollLeft = useRef(0);
 
-    const oldScrollLeft = container.scrollLeft;
-    const contentX = oldScrollLeft + mouseX;
+  const mouseDownHandler = (e: React.MouseEvent<HTMLDivElement>) => {
+    if(e.button !== 0) {
+      return;
+    }
+    isDragging.current = true;
+    startX.current = e.pageX - (containerRef.current?.offsetLeft || 0);
+    scrollLeft.current = containerRef.current?.scrollLeft || 0;
+    containerRef.current!.style.cursor = "grabbing";
 
-    // const ratio = (scrollLeftBefore + mouseX) / (totalDays * cellWidth);
+    window.addEventListener("mousemove", mouseMoveWindowHandler);
+    window.addEventListener("mouseup", mouseUpWindowHandler);
+  }
+  const mouseMoveWindowHandler = (e: MouseEvent) => {
+    if(!isDragging.current || !containerRef.current) {
+      return;
+    }
+    e.preventDefault();
+    const x = e.pageX - containerRef.current.offsetLeft;
+    const walk = (x - startX.current) * 1;
+    containerRef.current.scrollLeft = scrollLeft.current - walk;
 
-    const delta = e.deltaY > 0 ? -0.1 : 0.1
-    setZoom((prev) => {
-      const newZoom = Math.min(maxZoom, Math.max(minZoom, prev + delta));
-      const oldCellWidth = baseCellWidth * zoom;
-      const newCellWidth = baseCellWidth * newZoom;
-      const newTotalWidth = totalDays * newCellWidth;
-      let newScrollLeft = (contentX / oldCellWidth) * newCellWidth - mouseX;
-      newScrollLeft = Math.max(0, Math.min(newScrollLeft, newTotalWidth - container.clientWidth));
-
-      queueMicrotask(() => {
-        if (container) {
-          container.scrollLeft = newScrollLeft;
-        }
-      });
-      return newZoom;
-    });
-
-  };
-
+  }
+  const mouseUpWindowHandler = (e: MouseEvent) => {
+    if(!isDragging.current) {
+      return;
+    }
+    isDragging.current = false;
+    const container = containerRef.current;
+    if(container) {
+      container.style.cursor = "grab";
+    }
+    window.removeEventListener("mousemove", mouseMoveWindowHandler);
+    window.removeEventListener("mouseup", mouseUpWindowHandler);
+  }
+  
 
   return (
     <div className="vacationPage">
 
       <div
+        style={{
+          width: 180,
+          flex: "0 0 180px",
+          position: "sticky",
+          left: 0,
+          top: 0,
+          zIndex: 5,
+        }}
+      >
+        <div
+          style={{
+            height: "48px",
+            // borderBottom: "1px solid green",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontWeight: "bold"
+          }}
+        ></div>
+        {people.map((p, i) => (
+          <div
+            key={p}
+            style={{
+              height: "26px",
+              lineHeight: "28px",
+              borderBottom: "1px solid #444",
+              paddingLeft: "8px",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              background: `${selected.find(x => x === p) ? "#ffffff30" : ""}`,
+              cursor: "pointer",
+              borderRadius: 6
+            }}
+            onClick={() => selectToggleHandler(p)}
+          >
+            {p}
+          </div>
+        ))}
+
+      </div>
+      <div
         className="year-timeline"
         ref={containerRef}
-        onWheel={handleWheel}
       >
         <div
           className="timeline-content"
           style={{
             width: `${totalDays * cellWidth}px`
           }}
+          onMouseDown={mouseDownHandler}
         >
           {monthGrid()}
-
-          {dateSettings.vacations.map((v, i) => {
-            const startDate = new Date(v.start);
-            const endDate = new Date(v.end);
-            const startIndex = getDayOfYear(startDate) - 1;
-            const endIndex = getDayOfYear(endDate) - 1;
-            const left = startIndex * cellWidth;
-            const width = (endIndex - startIndex + 1) * cellWidth;
-            const color = getColorForName(v.name);
-            return (
+          <div
+            style={{
+              position: "absolute",
+              top: 47,
+              left: 0,
+              width: "100%",
+              height: `${people.length * 26}px`,
+              pointerEvents: "none"
+            }}
+          >
+            {Array.from({ length: totalDays }).map((_, i) => {
+              const date = new Date(year, 0, 1);
+              date.setDate(i + 2);
+              const inMonthStart = date.getDate() === 1;
+              return (
+                <div
+                  key={`v-${i}`}
+                  style={{
+                    position: "absolute",
+                    left: `${i * cellWidth}px`,
+                    top: 0,
+                    bottom: 0,
+                    width: `${cellWidth}px`,
+                    borderRight: `1px solid ${inMonthStart ? "#444" : "#222"}`
+                  }}
+                />
+              )
+            })}
+            {people.map((_, idx) => (
               <div
-                key={i}
-                className="timelime-vacation"
+                key={`h-${idx}`}
                 style={{
-                  left,
-                  width,
-                  top: i * 26 + 50,
-                  background: color
+                  position: "absolute",
+                  top: `${(idx + 1) * 26}px`,
+                  left: 0,
+                  width: "100%",
+                  borderTop: "1px solid #222"
                 }}
-                title={`${v.name}: ${formatDate(v.start)} - ${formatDate(v.end)}`}
-              >
-                <span>{v.name}</span>
-              </div>
-            )
-          })}
+              />
+            ))}
+          </div>
+          {dateSettings.vacations
+            // .filter(v => new Date(v.start).getFullYear() === year && new Date(v.end).getFullYear() === year)
+            .map((v, i) => {
+              const personIndex = people.indexOf(v.name)
+              const startDate = new Date(v.start);
+              const endDate = new Date(v.end);
+              const startIndex = getDayOfYear(startDate, year) - 1;
+              const endIndex = getDayOfYear(endDate, year) - 1;
+              const left = startIndex * cellWidth + 3;
+              const width = (endIndex - startIndex + 1) * cellWidth - 6;
+              const color = getColorForName(v.name);
+              return (
+                <div
+                  key={i}
+                  className="timelime-vacation"
+                  style={{
+                    left,
+                    width,
+                    top: personIndex * 26 + 50,
+                    background: color,
+                    opacity: `${selected.find(x => x === v.name) || selected.length === 0 ? "1" : "0.1"}`
+                  }}
+                  title={`${v.name}: ${formatDate(v.start)} - ${formatDate(v.end)}`}
+                >
+                  <span style={{ overflow: "hidden" }}>{v.name}</span>
+                </div>
+              )
+            })}
 
           {todayPos >= 0 && (
             <div
