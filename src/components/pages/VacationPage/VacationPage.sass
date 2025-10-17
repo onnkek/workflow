@@ -7,10 +7,12 @@
   position: relative
   // overflow-x: hidden
   overflow-y: hidden
-  height: 560px
+  height: auto
+  margin-bottom: -10px
   // border: 1px solid #ccc
   background: transparent
   user-select: none
+  box-sizing: border-box
   &::-webkit-scrollbar
     height: 10px
   &::-webkit-scrollbar-thumb
@@ -32,7 +34,7 @@
 
 .today-line
   position: absolute
-  top: 0
+  top: 60px
   bottom: 0
   width: 2px
   background: red
@@ -61,3 +63,17 @@
   white-space: nowrap
   cursor: pointer
 
+.weekend-vacation
+  background-color: #ff000015
+
+.holiday-vacation
+  background-color: #ff222230
+
+.transferTo-vacation
+  background-color: #ff000015
+
+.transferFrom-vacation
+  background-color: transparent
+
+.vacation-people-item
+  

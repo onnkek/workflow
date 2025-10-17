@@ -9,9 +9,21 @@ import ContextMenu from "../../ContextMenu/ContextMenu"
 import Finder from "../../Finder/Finder"
 import ContentDivider from "../../ContentDivider/ContentDivider"
 import { getSettings } from "../../../redux/SettingsSlice"
+import { formatDateShort, getWorkDayInfo } from "../CalendarPage/CalendarPage"
 
 export interface VacationPageType {
   year: number
+}
+
+function throttle<T extends (...args: any[]) => void>(func: T, limit: number): T {
+  let inThrottle: boolean;
+  return function (this: any, ...args: any[]) {
+    if (!inThrottle) {
+      func.apply(this, args);
+      inThrottle = true;
+      setTimeout(() => inThrottle = false, limit);
+    }
+  } as T;
 }
 
 const isLeapYear = (y: number) => {
@@ -29,6 +41,7 @@ const formatDate = (str: string) => {
   return d.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit" });
 }
 
+const weekNames = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
 
 const VacationPage = ({ year }: VacationPageType) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -38,13 +51,21 @@ const VacationPage = ({ year }: VacationPageType) => {
   const minZoom = 0.1;
   const maxZoom = 5;
   const baseCellWidth = 20;
-  const ZOOM_SENSITIVITY = 0.006;
+  const ZOOM_SENSITIVITY = 0.004;
   const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
   const totalDays = (isLeapYear(year) ? 366 : 365) + (isLeapYear(year + 1) ? 366 : 365);
   const dispatch = useAppDispatch()
   const dateSettings = useAppSelector(state => state.settings.date)
   const status = useAppSelector(state => state.settings.status)
-
+  const [hoveredVacation, setHoveredVacation] = useState<null | {
+    id: number
+    x: number
+    y: number
+    name: string
+    start: string
+    end: string
+    reason?: string
+  }>(null);
 
   const cellWidth = baseCellWidth * zoom;
   useEffect(() => {
@@ -70,7 +91,7 @@ const VacationPage = ({ year }: VacationPageType) => {
     const elems: JSX.Element[] = [];
     let dayIndex = 0;
     for (let m = 0; m < 24; m++) {
-      let targetYear;
+      let targetYear: number;
       if (m < 12) {
         targetYear = year;
       } else {
@@ -87,6 +108,21 @@ const VacationPage = ({ year }: VacationPageType) => {
           }}
         >
           <span>{months[m % 12]} {targetYear}</span>
+          <div className="days-row">
+            {zoom > 0.7 && Array.from({ length: daysInMonth }).map((_, i) => {
+              const date = new Date(targetYear, m % 12, i + 1);
+
+              return (
+                <div
+                  key={i}
+                  className="day-cell"
+                  style={{ width: `${cellWidth}px` }}
+                >
+                  {weekNames[date.getDay()]}
+                </div>
+              )
+            })}
+          </div>
           <div className="days-row">
             {zoom > 0.7 && Array.from({ length: daysInMonth }).map((_, i) => (
               <div
@@ -188,6 +224,8 @@ const VacationPage = ({ year }: VacationPageType) => {
     // });
   }, [zoom]);
 
+  const throttleWheel = throttle(onWheelNative, 20);
+
   useLayoutEffect(() => {
     const container = containerRef.current;
     if (!container) {
@@ -206,11 +244,11 @@ const VacationPage = ({ year }: VacationPageType) => {
     if (!el) {
       return;
     }
-    el.addEventListener("wheel", onWheelNative as EventListener, { passive: false });
+    el.addEventListener("wheel", throttleWheel as EventListener, { passive: false });
     return () => {
-      el.removeEventListener("wheel", onWheelNative as EventListener);
+      el.removeEventListener("wheel", throttleWheel as EventListener);
     }
-  }, [onWheelNative])
+  }, [throttleWheel])
 
   const people = Array.from(new Set(dateSettings.vacations.map(v => v.name))).sort((a, b) => a.localeCompare(b, "ru", { sensitivity: "base" }));
 
@@ -232,7 +270,7 @@ const VacationPage = ({ year }: VacationPageType) => {
   const scrollLeft = useRef(0);
 
   const mouseDownHandler = (e: React.MouseEvent<HTMLDivElement>) => {
-    if(e.button !== 0) {
+    if (e.button !== 0) {
       return;
     }
     isDragging.current = true;
@@ -244,7 +282,7 @@ const VacationPage = ({ year }: VacationPageType) => {
     window.addEventListener("mouseup", mouseUpWindowHandler);
   }
   const mouseMoveWindowHandler = (e: MouseEvent) => {
-    if(!isDragging.current || !containerRef.current) {
+    if (!isDragging.current || !containerRef.current) {
       return;
     }
     e.preventDefault();
@@ -254,18 +292,18 @@ const VacationPage = ({ year }: VacationPageType) => {
 
   }
   const mouseUpWindowHandler = (e: MouseEvent) => {
-    if(!isDragging.current) {
+    if (!isDragging.current) {
       return;
     }
     isDragging.current = false;
     const container = containerRef.current;
-    if(container) {
+    if (container) {
       container.style.cursor = "grab";
     }
     window.removeEventListener("mousemove", mouseMoveWindowHandler);
     window.removeEventListener("mouseup", mouseUpWindowHandler);
   }
-  
+
 
   return (
     <div className="vacationPage">
@@ -282,7 +320,7 @@ const VacationPage = ({ year }: VacationPageType) => {
       >
         <div
           style={{
-            height: "48px",
+            height: "60px", //123
             // borderBottom: "1px solid green",
             display: "flex",
             alignItems: "center",
@@ -303,7 +341,7 @@ const VacationPage = ({ year }: VacationPageType) => {
               textOverflow: "ellipsis",
               background: `${selected.find(x => x === p) ? "#ffffff30" : ""}`,
               cursor: "pointer",
-              borderRadius: 6
+              // borderRadius: `${selected.find(x => x === p) ? "6px" : ""}`,
             }}
             onClick={() => selectToggleHandler(p)}
           >
@@ -327,7 +365,7 @@ const VacationPage = ({ year }: VacationPageType) => {
           <div
             style={{
               position: "absolute",
-              top: 47,
+              top: 59,
               left: 0,
               width: "100%",
               height: `${people.length * 26}px`,
@@ -336,18 +374,31 @@ const VacationPage = ({ year }: VacationPageType) => {
           >
             {Array.from({ length: totalDays }).map((_, i) => {
               const date = new Date(year, 0, 1);
-              date.setDate(i + 2);
+              date.setDate(i + 1);
               const inMonthStart = date.getDate() === 1;
+              // const dayOfWeek = (new Date(year, 1, 1).getDay() + i - 1) % 7;
+              const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+              const dayInfo = getWorkDayInfo(date, dateSettings);
+
+
+              const classNames = [
+                isWeekend && "weekend-vacation",
+                dayInfo.type + "-vacation"
+              ]
+                .filter(Boolean)
+                .join(" ");
+
               return (
                 <div
                   key={`v-${i}`}
+                  className={classNames}
                   style={{
                     position: "absolute",
                     left: `${i * cellWidth}px`,
                     top: 0,
                     bottom: 0,
                     width: `${cellWidth}px`,
-                    borderRight: `1px solid ${inMonthStart ? "#444" : "#222"}`
+                    borderLeft: `1px solid ${inMonthStart ? "#444" : "#222"}`,
                   }}
                 />
               )
@@ -383,13 +434,31 @@ const VacationPage = ({ year }: VacationPageType) => {
                   style={{
                     left,
                     width,
-                    top: personIndex * 26 + 50,
+                    top: personIndex * 26 + 62,
                     background: color,
-                    opacity: `${selected.find(x => x === v.name) || selected.length === 0 ? "1" : "0.1"}`
+                    // boxShadow: `${!selected.find(x => x === v.name) ? "0px 0px 0px 0px transparent" : `0px 0px 2px 1px ${color}`}`,
+                    opacity: `${selected.find(x => x === v.name) || selected.length === 0 ? "1" : "0.1"}`,
+                    cursor: "default"
                   }}
-                  title={`${v.name}: ${formatDate(v.start)} - ${formatDate(v.end)}`}
+                  // title={`${v.name}: ${formatDate(v.start)} - ${formatDate(v.end)}`}
+                  onMouseMove={(e) => {
+                    if (selected.find(p => p === v.name) || selected.length === 0) {
+                      setHoveredVacation({
+                        id: v.id,
+                        x: e.clientX,
+                        y: e.clientY,
+                        name: v.name,
+                        start: v.start,
+                        end: v.end,
+                        reason: "",
+                      });
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    setHoveredVacation(null);
+                  }}
                 >
-                  <span style={{ overflow: "hidden" }}>{v.name}</span>
+                  {v.name.length * 2 < width ? <span style={{ overflow: "hidden" }}>{v.name}</span> : <></>}
                 </div>
               )
             })}
@@ -398,11 +467,33 @@ const VacationPage = ({ year }: VacationPageType) => {
             <div
               className="today-line"
               style={{ left: todayPos }}
-              title="Сегодня"
+            // title="Сегодня"
             />
           )}
         </div>
       </div>
+      {
+        hoveredVacation && (
+          <div
+            className="vacation-popover"
+            style={{
+              position: "fixed",
+              top: hoveredVacation.y + 12,
+              left: hoveredVacation.x + 12,
+              transform: "translate(0, 0)",
+            }}
+          >
+            <div style={{ marginBottom: 10 }}><strong>{hoveredVacation.name}</strong></div>
+            <div>{formatDateShort(hoveredVacation.start)} - {formatDateShort(hoveredVacation.end)}</div>
+            {hoveredVacation.reason && <div>{hoveredVacation.reason}</div>}
+          </div>
+        )
+      }
+
+      {/* <button style={{ width: "500px", height: "200px", position: "absolute", top: "120%", left: "50%" }}
+        onClick={(e) => { alert("Проверяй") }}
+      >ПОЛУЧИТЬ БАБЛО от Кирилла!</button> */}
+      {/* <div style={{ position: "absolute", top: "130%", left: "5%", fontSize: "60px" }}>СЕЙЧАС: {new Date().getHours()}:{new Date().getMinutes()}:{new Date().getSeconds()}</div> */}
     </div >
   )
 }

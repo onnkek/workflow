@@ -4,7 +4,105 @@ import { useAppDispatch, useAppSelector } from "../../../models/Hook"
 import { getSettings, IDate } from "../../../redux/SettingsSlice"
 import { Status } from "../../../models/Status"
 import CalendarWidget from "../../widgets/CalendarWidget/CalendarWidget"
+type WorkDayInfo = {
+  hours: number
+  reason?: string
+  type: "regular" | "holiday" | "short" | "transferFrom" | "transferTo" | "weekend";
+}
+const BASE_HOURS = {
+  default: 8.25,
+  friday: 7
+}
+const sameLocalDate = (a: Date, b: Date) => {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
 
+const sameDateWithoutYear = (a: Date, b: Date) => {
+  return (
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
+export function formatDateShort(dateStr: string) {
+  const d = new Date(dateStr);
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const year = String(d.getFullYear()).slice(-2); // последние 2 цифры года
+  return `${day}.${month}.${year}`;
+}
+export const getWorkDayInfo = (date: Date, dateSettings: IDate): WorkDayInfo => {
+  const day = date.getDay();
+  let hours: number | undefined;
+  const reasons: string[] = [];
+  let type: WorkDayInfo["type"] = "regular";
+
+  const holiday = dateSettings.holidays.find(h => sameDateWithoutYear(date, new Date(h.day)));
+  if (holiday) {
+    hours = 0;
+    reasons.push(holiday.name);
+    type = "holiday";
+  }
+
+  const transfer = dateSettings.transfers.find(t =>
+    sameLocalDate(date, new Date(t.from)) ||
+    sameLocalDate(date, new Date(t.to))
+  );
+  if (transfer) {
+    if (sameLocalDate(date, new Date(transfer.from))) {
+      const short = dateSettings.exceptions.find(s => sameDateWithoutYear(new Date(transfer.from), new Date(s.date)));
+      if (hours === undefined) {
+        hours = short ? short.time : (day === 5 ? BASE_HOURS.friday : BASE_HOURS.default);
+      }
+      reasons.push(transfer.name);
+      type = type === "holiday" ? type : "transferFrom";
+    }
+    if (sameLocalDate(date, new Date(transfer.to))) {
+      hours = 0;
+      reasons.push(transfer.name);
+      type = type === "holiday" ? type : "transferTo";
+    }
+  }
+
+  const short = dateSettings.exceptions.find(e => sameDateWithoutYear(date, new Date(e.date)));
+  if (short) {
+    if (hours === undefined) {
+      hours = short.time;
+    }
+    reasons.push(short.name);
+    if (type === "regular") {
+      type = "short";
+    }
+  }
+  if (day === 0 || day === 6) {
+    if (hours === undefined) {
+      hours = 0;
+    }
+    if (!reasons.length) {
+      reasons.push("Выходной день");
+    }
+    if (type === "regular") {
+      type = "weekend";
+    }
+  }
+  if (hours === undefined) {
+    if (day === 5) {
+      reasons.push("Рабочий день (Пятница)");
+      hours = BASE_HOURS.friday;
+    } else {
+      reasons.push("Рабочий день");
+      hours = BASE_HOURS.default;
+    }
+  }
+  return {
+    hours,
+    reason: reasons.join(", "),
+    type
+  };
+}
 const CalendarPage = () => {
   const dispatch = useAppDispatch()
   const dateSettings = useAppSelector(state => state.settings.date)
@@ -104,100 +202,11 @@ const CalendarPage = () => {
     setSelectYear(-1);
   }
 
-  type WorkDayInfo = {
-    hours: number
-    reason?: string
-    type: "regular" | "holiday" | "short" | "transferFrom" | "transferTo" | "weekend";
-  }
-  const BASE_HOURS = {
-    default: 8.25,
-    friday: 7
-  }
 
-  const sameLocalDate = (a: Date, b: Date) => {
-    return (
-      a.getFullYear() === b.getFullYear() &&
-      a.getMonth() === b.getMonth() &&
-      a.getDate() === b.getDate()
-    );
-  }
 
-  const sameDateWithoutYear = (a: Date, b: Date) => {
-    return (
-      a.getMonth() === b.getMonth() &&
-      a.getDate() === b.getDate()
-    );
-  }
 
-  const getWorkDayInfo = (date: Date): WorkDayInfo => {
-    const day = date.getDay();
-    let hours: number | undefined;
-    const reasons: string[] = [];
-    let type: WorkDayInfo["type"] = "regular";
 
-    const holiday = dateSettings.holidays.find(h => sameDateWithoutYear(date, new Date(h.day)));
-    if (holiday) {
-      hours = 0;
-      reasons.push(holiday.name);
-      type = "holiday";
-    }
 
-    const transfer = dateSettings.transfers.find(t =>
-      sameLocalDate(date, new Date(t.from)) ||
-      sameLocalDate(date, new Date(t.to))
-    );
-    if (transfer) {
-      if (sameLocalDate(date, new Date(transfer.from))) {
-        const short = dateSettings.exceptions.find(s => sameDateWithoutYear(new Date(transfer.from), new Date(s.date)));
-        if (hours === undefined) {
-          hours = short ? short.time : (day === 5 ? BASE_HOURS.friday : BASE_HOURS.default);
-        }
-        reasons.push(transfer.name);
-        type = type === "holiday" ? type : "transferFrom";
-      }
-      if (sameLocalDate(date, new Date(transfer.to))) {
-        hours = 0;
-        reasons.push(transfer.name);
-        type = type === "holiday" ? type : "transferTo";
-      }
-    }
-
-    const short = dateSettings.exceptions.find(e => sameDateWithoutYear(date, new Date(e.date)));
-    if (short) {
-      if (hours === undefined) {
-        hours = short.time;
-      }
-      reasons.push(short.name);
-      if (type === "regular") {
-        type = "short";
-      }
-    }
-    if (day === 0 || day === 6) {
-      if (hours === undefined) {
-        hours = 0;
-      }
-      if (!reasons.length) {
-        reasons.push("Выходной день");
-      }
-      if (type === "regular") {
-        type = "weekend";
-      }
-    }
-    if (hours === undefined) {
-      if (day === 5) {
-        reasons.push("Рабочий день (Пятница)");
-        hours = BASE_HOURS.friday;
-      } else {
-        reasons.push("Рабочий день");
-        hours = BASE_HOURS.default;
-      }
-    }
-    return {
-      hours,
-      reason: reasons.join(", "),
-      type
-    };
-  }
 
   const formatHours = (hours: number) => {
     const totalMinutes = Math.round(hours * 60);
@@ -211,13 +220,7 @@ const CalendarPage = () => {
       dispatch(getSettings())
     }
   }, [status, dispatch])
-  function formatDateShort(dateStr: string) {
-    const d = new Date(dateStr);
-    const day = String(d.getDate()).padStart(2, "0");
-    const month = String(d.getMonth() + 1).padStart(2, "0");
-    const year = String(d.getFullYear()).slice(-2); // последние 2 цифры года
-    return `${day}.${month}.${year}`;
-  }
+
   const calendarContent = <>
     {months.map(month =>
       <div style={{ padding: "10px", cursor: "pointer" }} key={Math.random()}>
@@ -243,21 +246,23 @@ const CalendarPage = () => {
 
 
   const colors = [
-    "hsla(0, 90%, 60%, 0.5)",    // красный
+
     "hsla(15, 90%, 60%, 0.5)",   // оранжевый
-    "hsla(30, 90%, 60%, 0.5)",   // желто-оранжевый
-    "hsla(45, 90%, 60%, 0.5)",   // желтый
-    "hsla(60, 90%, 60%, 0.5)",   // желто-зеленый
     "hsla(90, 90%, 60%, 0.5)",   // зеленый
     "hsla(120, 90%, 60%, 0.5)",  // ярко-зеленый
+    "hsla(360, 90%, 60%, 0.5)",  // красно-розовый
+    "hsla(210, 90%, 60%, 0.5)",  // синий
+    "hsla(270, 90%, 60%, 0.5)",  // фиолетовый
+    "hsla(45, 90%, 60%, 0.5)",   // желтый
     "hsla(150, 90%, 60%, 0.5)",  // бирюзовый
     "hsla(180, 90%, 60%, 0.5)",  // голубой
-    "hsla(210, 90%, 60%, 0.5)",  // синий
+    "hsla(30, 90%, 60%, 0.5)",   // желто-оранжевый
+    "hsla(0, 90%, 60%, 0.5)",    // красный
     "hsla(240, 90%, 60%, 0.5)",  // темно-синий
-    "hsla(270, 90%, 60%, 0.5)",  // фиолетовый
+    "hsla(60, 90%, 60%, 0.5)",   // желто-зеленый
     "hsla(300, 90%, 60%, 0.5)",  // ярко-фиолетовый
     "hsla(330, 90%, 60%, 0.5)",  // розовый
-    "hsla(360, 90%, 60%, 0.5)",  // красно-розовый
+
     // ещё 30 цветов с равномерным распределением оттенков
     "hsla(12, 90%, 60%, 0.5)", "hsla(24, 90%, 60%, 0.5)", "hsla(36, 90%, 60%, 0.5)",
     "hsla(48, 90%, 60%, 0.5)", "hsla(72, 90%, 60%, 0.5)", "hsla(84, 90%, 60%, 0.5)",
@@ -299,158 +304,186 @@ const CalendarPage = () => {
     date: { day: number, month: number, year: number }
     reason?: string
   }>(null);
+
+  const nextMonthHandler = () => {
+    if (select + 1 > 12) {
+      setSelect(1);
+      setSelectYear(selectYear + 1);
+    } else {
+      setSelect(select + 1);
+    }
+  }
+  const prevMonthHandler = () => {
+    if (select === 1) {
+      setSelect(12);
+      setSelectYear(selectYear - 1);
+    } else {
+      setSelect(select - 1);
+    }
+  }
+
   return (
-    <div className="vacationPage">
+    <div className="calendarPage">
       {selectYear == -1 && <div className="years-view">
         {yearsContent}
       </div>}
-      {selectYear != -1 && select == -1 && <div style={{ fontSize: "30px", textAlign: "center", marginTop: "20px" }}>{selectYear}</div>}
-      {selectYear != -1 && select != -1 && <div style={{ fontSize: "30px", textAlign: "center", marginTop: "20px" }}>{getMonthFromObject({ day: 1, month: select - 1, year: selectYear }, false)} {selectYear}</div >}
+      {selectYear != -1 && select == -1 && <div style={{ fontSize: "30px", textAlign: "center", marginTop: "0px" }}>{selectYear}</div>}
+      {selectYear != -1 && select != -1 && <div style={{ fontSize: "30px", textAlign: "center", marginTop: "0px" }}>{getMonthFromObject({ day: 1, month: select - 1, year: selectYear }, false)} {selectYear}</div >}
       {
         select == -1 && selectYear != -1 &&
         <div className="months-view" onContextMenu={monthsContextMenuHandler}>
           {calendarContent}
         </div>
       }
-      <div className="month-view" onContextMenu={contextMenuHandler}>
+      <div className="calendar-body">
+        {selectYear != -1 && select != -1 && <button className="calendar-btn" onClick={prevMonthHandler}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" fill="currentColor" className="bi bi-chevron-compact-left" viewBox="0 0 16 16">
+            <path fill-rule="evenodd" d="M9.224 1.553a.5.5 0 0 1 .223.67L6.56 8l2.888 5.776a.5.5 0 1 1-.894.448l-3-6a.5.5 0 0 1 0-.448l3-6a.5.5 0 0 1 .67-.223" />
+          </svg>
+        </button>}
+        <div className="month-view" onContextMenu={contextMenuHandler}>
 
 
-        {select != -1 && selectYear != -1 && <>
-          <div className="month-grid">
-            {dayNames.map(n => (
-              <div key={n}>{n}</div>
-            ))}
-          </div>
+          {select != -1 && selectYear != -1 && <>
+            <div className="month-grid">
+              {dayNames.map(n => (
+                <div key={n}>{n}</div>
+              ))}
+            </div>
 
-          <div className="calendar-grid">
-            {weeks.map((week, weekIndex) => {
-              // вычисляем реальные даты начала и конца недели
-              const firstVisibleDay = new Date(selectYear, select - 1 + week[0].monthOffset, week[0].day);
-              const lastVisibleDay = new Date(selectYear, select - 1 + week[6].monthOffset, week[6].day);
+            <div className="calendar-grid">
+              {weeks.map((week, weekIndex) => {
+                // вычисляем реальные даты начала и конца недели
+                const firstVisibleDay = new Date(selectYear, select - 1 + week[0].monthOffset, week[0].day);
+                const lastVisibleDay = new Date(selectYear, select - 1 + week[6].monthOffset, week[6].day);
 
-              // фильтруем отпуска, которые хоть как-то пересекаются с неделей
-              const weekVacations = dateSettings.vacations.filter(v => {
-                const start = new Date(v.start);
-                const end = new Date(v.end);
-                return start <= lastVisibleDay && end >= firstVisibleDay;
-              });
+                // фильтруем отпуска, которые хоть как-то пересекаются с неделей
+                const weekVacations = dateSettings.vacations.filter(v => {
+                  const start = new Date(v.start);
+                  const end = new Date(v.end);
+                  return start <= lastVisibleDay && end >= firstVisibleDay;
+                });
 
-              // распределяем их по строкам, чтобы не налегали
-              const vacationRows = assignVacationRows(weekVacations, select - 1, selectYear);
+                // распределяем их по строкам, чтобы не налегали
+                const vacationRows = assignVacationRows(weekVacations, select - 1, selectYear);
 
-              return (
-                <div key={weekIndex} className="week">
-                  <div className="day-wrapper">
-                    {week.map(({ day, monthOffset }, i) => {
-                      const date = new Date(selectYear, select - 1 + monthOffset, day);
-                      const isOtherMonth = monthOffset !== 0;
-                      const isToday = date.toDateString() === new Date().toDateString();
+                return (
+                  <div key={weekIndex} className="week">
+                    <div className="day-wrapper">
+                      {week.map(({ day, monthOffset }, i) => {
+                        const date = new Date(selectYear, select - 1 + monthOffset, day);
+                        const isOtherMonth = monthOffset !== 0;
+                        const isToday = date.toDateString() === new Date().toDateString();
 
-                      const birthdaysToday = monthOffset === 0
-                        ? dateSettings.birthdays.filter(b => {
-                          const bd = new Date(b.day);
-                          return bd.getMonth() === select - 1 && bd.getDate() === day;
-                        })
-                        : [];
-                      const workHours = getWorkDayInfo(date);
+                        const birthdaysToday = monthOffset === 0
+                          ? dateSettings.birthdays.filter(b => {
+                            const bd = new Date(b.day);
+                            return bd.getMonth() === select - 1 && bd.getDate() === day;
+                          })
+                          : [];
+                        const workHours = getWorkDayInfo(date, dateSettings);
 
-                      const classNames = [
-                        "day",
-                        isToday && "today",
-                        isOtherMonth && "other-month",
-                        workHours.type
-                      ]
-                        .filter(Boolean)
-                        .join(" ");
-                      return (
-                        <div
-                          className={classNames}
-                          key={i}
-                          onMouseMove={(e) => {
-                            setHoveredDay({
-                              id: day,
-                              x: e.clientX,
-                              y: e.clientY,
-                              date: { day: day, month: select - 1 + monthOffset, year: selectYear },
-                              reason: workHours.reason,
-                            });
-                          }}
-                          onMouseLeave={() => setHoveredDay(null)}
-                        >
-                          {birthdaysToday.map(b => (
-                            <div key={b.id} className="birthday-name">
-                              🍰 {b.name}
-                            </div>
-                          ))}
-                          <div className="work-hours">
-                            {workHours.hours > 0 ? formatHours(workHours.hours) : "00:00"}
-                          </div>
-                          <div className="day-number"
-                          >{day}</div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* Линии отпусков */}
-                  {vacationRows.map((row, rowIndex) => (
-                    <div
-                      className="vacation-row"
-                      key={rowIndex}
-                      style={{ bottom: `${rowIndex * 20}px` }}
-                    >
-                      {row.map(vac => {
-                        const start = new Date(vac.start);
-                        const end = new Date(vac.end);
-
-                        const visibleStart = start < firstVisibleDay ? firstVisibleDay : start;
-                        const visibleEnd = end > lastVisibleDay ? lastVisibleDay : end;
-
-                        const startDayOfWeek = (visibleStart.getDay() + 6) % 7;
-                        const endDayOfWeek = (visibleEnd.getDay() + 6) % 7;
-
-                        const left = (startDayOfWeek / 7) * 100 + 0.2;
-                        const width = ((endDayOfWeek - startDayOfWeek + 1) / 7) * 100 - 0.4;
-
-
-
-
+                        const classNames = [
+                          "day",
+                          isToday && "today",
+                          isOtherMonth && "other-month",
+                          workHours.type
+                        ]
+                          .filter(Boolean)
+                          .join(" ");
                         return (
                           <div
-                            key={vac.id}
-                            className="vacation-bar"
-                            style={{
-                              left: `${left}%`,
-                              width: `${width}%`,
-                              backgroundColor: getColorForName(vac.name),
-                            }}
+                            className={classNames}
+                            key={i}
                             onMouseMove={(e) => {
-                              setHoveredVacation({
-                                id: vac.id,
+                              setHoveredDay({
+                                id: day,
                                 x: e.clientX,
                                 y: e.clientY,
-                                name: vac.name,
-                                start: vac.start,
-                                end: vac.end,
-                                reason: "",
+                                date: { day: day, month: select - 1 + monthOffset, year: selectYear },
+                                reason: workHours.reason,
                               });
                             }}
-                            onMouseLeave={() => setHoveredVacation(null)}
+                            onMouseLeave={() => setHoveredDay(null)}
                           >
-                            <span className="vacation-name">{vac.name}</span>
+                            {birthdaysToday.map(b => (
+                              <div key={b.id} className="birthday-name">
+                                🍰 {b.name}
+                              </div>
+                            ))}
+                            <div className="work-hours">
+                              {workHours.hours > 0 ? formatHours(workHours.hours) : "00:00"}
+                            </div>
+                            <div className="day-number"
+                            >{day}</div>
                           </div>
                         );
                       })}
                     </div>
-                  ))}
-                </div>
-              );
-            })}
-          </div>
-        </>}
+
+                    {/* Линии отпусков */}
+                    {vacationRows.map((row, rowIndex) => (
+                      <div
+                        className="vacation-row"
+                        key={rowIndex}
+                        style={{ bottom: vacationRows.length < 5 ? `${rowIndex * 20}px` : `${rowIndex * 10}px` }}
+                      >
+                        {row.map(vac => {
+                          const start = new Date(vac.start);
+                          const end = new Date(vac.end);
+
+                          const visibleStart = start < firstVisibleDay ? firstVisibleDay : start;
+                          const visibleEnd = end > lastVisibleDay ? lastVisibleDay : end;
+
+                          const startDayOfWeek = (visibleStart.getDay() + 6) % 7;
+                          const endDayOfWeek = (visibleEnd.getDay() + 6) % 7;
+
+                          const left = (startDayOfWeek / 7) * 100 + 0.2;
+                          const width = ((endDayOfWeek - startDayOfWeek + 1) / 7) * 100 - 0.4;
 
 
 
+
+                          return (
+                            <div
+                              key={vac.id}
+                              className="vacation-bar"
+                              style={{
+                                left: `${left}%`,
+                                width: `${width}%`,
+                                height: `${vacationRows.length < 5 ? "16px" : "7px"}`,
+                                backgroundColor: getColorForName(vac.name),
+                              }}
+                              onMouseMove={(e) => {
+                                setHoveredVacation({
+                                  id: vac.id,
+                                  x: e.clientX,
+                                  y: e.clientY,
+                                  name: vac.name,
+                                  start: vac.start,
+                                  end: vac.end,
+                                  reason: "",
+                                });
+                              }}
+                              onMouseLeave={() => setHoveredVacation(null)}
+                            >
+                              {vacationRows.length < 5 && <span className="vacation-name">{vac.name}</span>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+          </>}
+        </div>
+        {selectYear != -1 && select != -1 && <button className="calendar-btn" onClick={nextMonthHandler}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" fill="currentColor" className="bi bi-chevron-compact-right" viewBox="0 0 16 16">
+            <path fill-rule="evenodd" d="M6.776 1.553a.5.5 0 0 1 .671.223l3 6a.5.5 0 0 1 0 .448l-3 6a.5.5 0 1 1-.894-.448L9.44 8 6.553 2.224a.5.5 0 0 1 .223-.671" />
+          </svg>
+        </button>}
       </div>
       {
         hoveredVacation && (
