@@ -55,10 +55,23 @@ export interface IDate {
 }
 
 
+interface Vacation {
+  start: string,
+  length: number
+}
+
+export interface PersonVacation {
+  id: number,
+  name: string,
+  service: string,
+  vacations: Vacation[]
+}
+
 
 interface ISettings {
   auth: boolean
   date: IDate
+  vacations: PersonVacation[]
   status: Status
   settingStatus: Status
   position: { x: number, y: number }
@@ -74,6 +87,7 @@ interface ISettings {
 
 const initialState: ISettings = {
   auth: false,
+  vacations: [],
   date: {
     holidays: [],
     birthdays: [],
@@ -112,9 +126,19 @@ const SettingsSlice = createSlice({
       .addCase(getSettings.fulfilled, (state: ISettings, action) => {
         state.status = Status.Succeeded
         state.date = action.payload.date
-
       })
       .addCase(getSettings.rejected, (state: ISettings, action) => {
+        state.status = Status.Failed
+      })
+
+      .addCase(getVacations.pending, (state: ISettings) => {
+        state.status = Status.Loading
+      })
+      .addCase(getVacations.fulfilled, (state: ISettings, action) => {
+        state.status = Status.Succeeded
+        state.vacations = action.payload
+      })
+      .addCase(getVacations.rejected, (state: ISettings, action) => {
         state.status = Status.Failed
       })
 
@@ -253,6 +277,13 @@ export const getSettings = createAsyncThunk(
 
   async () => {
     return await new PlannerAPIService().getSettings()
+  })
+
+export const getVacations = createAsyncThunk(
+  'settings/getVacations',
+
+  async () => {
+    return await new PlannerAPIService().getVacations()
   })
 
 

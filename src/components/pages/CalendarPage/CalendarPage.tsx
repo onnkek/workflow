@@ -1,7 +1,7 @@
 import React, { MouseEvent, MouseEventHandler, useEffect, useMemo, useState } from "react"
 import "./CalendarPage.sass"
 import { useAppDispatch, useAppSelector } from "../../../models/Hook"
-import { getSettings, IDate } from "../../../redux/SettingsSlice"
+import { getSettings, getVacations, IDate } from "../../../redux/SettingsSlice"
 import { Status } from "../../../models/Status"
 import CalendarWidget from "../../widgets/CalendarWidget/CalendarWidget"
 type WorkDayInfo = {
@@ -218,6 +218,7 @@ const CalendarPage = () => {
   useEffect(() => {
     if (status === Status.Idle) {
       dispatch(getSettings())
+      dispatch(getVacations())
     }
   }, [status, dispatch])
 

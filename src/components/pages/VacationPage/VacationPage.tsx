@@ -8,12 +8,16 @@ import IFolder from "../../../models/Folder"
 import ContextMenu from "../../ContextMenu/ContextMenu"
 import Finder from "../../Finder/Finder"
 import ContentDivider from "../../ContentDivider/ContentDivider"
-import { getSettings } from "../../../redux/SettingsSlice"
+import { getSettings, getVacations, PersonVacation } from "../../../redux/SettingsSlice"
 import { formatDateShort, getWorkDayInfo } from "../CalendarPage/CalendarPage"
+import { Dropdown, DropdownItem, DropdownMenu, DropdownToggle, FormGroup, Input, Label } from "reactstrap"
+import { setSelect } from "../../../redux/WidgetsSlice"
+
 
 export interface VacationPageType {
   year: number
 }
+
 
 function throttle<T extends (...args: any[]) => void>(func: T, limit: number): T {
   let inThrottle: boolean;
@@ -47,7 +51,7 @@ const VacationPage = ({ year }: VacationPageType) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const pendingScrollLeft = useRef<number | null>(null);
   const [zoom, setZoom] = useState(1);
-  const [selected, setSelected] = useState<string[]>([]);
+  const [selected, setSelected] = useState<number[]>([]);
   const minZoom = 0.1;
   const maxZoom = 5;
   const baseCellWidth = 20;
@@ -55,8 +59,10 @@ const VacationPage = ({ year }: VacationPageType) => {
   const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
   const totalDays = (isLeapYear(year) ? 366 : 365) + (isLeapYear(year + 1) ? 366 : 365);
   const dispatch = useAppDispatch()
+  const vacations = useAppSelector(state => state.settings.vacations)
   const dateSettings = useAppSelector(state => state.settings.date)
   const status = useAppSelector(state => state.settings.status)
+  const [selectedServices, setSelectedServices] = useState<Set<string>>(new Set(["САСДУ"]));
   const [hoveredVacation, setHoveredVacation] = useState<null | {
     id: number
     x: number
@@ -66,6 +72,7 @@ const VacationPage = ({ year }: VacationPageType) => {
     end: string
     reason?: string
   }>(null);
+
 
   const cellWidth = baseCellWidth * zoom;
   useEffect(() => {
@@ -187,6 +194,7 @@ const VacationPage = ({ year }: VacationPageType) => {
   useEffect(() => {
     if (status === Status.Idle) {
       dispatch(getSettings())
+      dispatch(getVacations())
     }
   }, [status, dispatch])
 
@@ -250,17 +258,34 @@ const VacationPage = ({ year }: VacationPageType) => {
     }
   }, [throttleWheel])
 
-  const people = Array.from(new Set(dateSettings.vacations.map(v => v.name))).sort((a, b) => a.localeCompare(b, "ru", { sensitivity: "base" }));
+  const groupedByService: Record<string, PersonVacation[]> = vacations.reduce(
+    (acc, person) => {
+      if (!acc[person.service]) {
+        acc[person.service] = [];
+      }
+      acc[person.service].push(person);
+      return acc;
+    },
+    {} as Record<string, PersonVacation[]>
+  );
 
-  const selectToggleHandler = (name: string) => {
+  const people = Object.entries(groupedByService).map(([service, people]) => ({
+    service,
+    people
+  })).filter(x => selectedServices.has(x.service));
+  console.log(people)
+
+  const selectToggleHandler = (id: number) => {
+
     let newSelected;
-    if (selected.find(x => x === name)) {
-      const index = selected.indexOf(name);
+    if (selected.find(x => x === id)) {
+      const index = selected.indexOf(id);
       newSelected = [...selected.slice(0, index), ...selected.slice(index + 1)];
     } else {
       newSelected = [...selected];
-      newSelected.push(name);
+      newSelected.push(id);
     }
+
     setSelected(newSelected);
   }
 
@@ -303,11 +328,29 @@ const VacationPage = ({ year }: VacationPageType) => {
     window.removeEventListener("mousemove", mouseMoveWindowHandler);
     window.removeEventListener("mouseup", mouseUpWindowHandler);
   }
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const toggle = () => setDropdownOpen((prevState) => !prevState);
+
+
+
+  const checkboxChangeHandler = (service: string) => {
+    setSelected([]);
+    setSelectedServices(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(service)) {
+        newSet.delete(service);
+      } else {
+        newSet.add(service);
+      }
+      return newSet;
+    });
+  }
+  let peopleIndex = -1;
+  let gridIndex = -1;
 
 
   return (
     <div className="vacationPage">
-
       <div
         style={{
           width: 180,
@@ -327,26 +370,58 @@ const VacationPage = ({ year }: VacationPageType) => {
             justifyContent: "center",
             fontWeight: "bold"
           }}
-        ></div>
-        {people.map((p, i) => (
-          <div
-            key={p}
-            style={{
-              height: "26px",
-              lineHeight: "28px",
-              borderBottom: "1px solid #444",
-              paddingLeft: "8px",
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              background: `${selected.find(x => x === p) ? "#ffffff30" : ""}`,
-              cursor: "pointer",
-              // borderRadius: `${selected.find(x => x === p) ? "6px" : ""}`,
-            }}
-            onClick={() => selectToggleHandler(p)}
+        >
+          <Dropdown
+            isOpen={dropdownOpen} toggle={toggle} direction="down"
           >
-            {p}
+            <DropdownToggle caret>Settings</DropdownToggle>
+            <DropdownMenu
+            // {...args}
+            >
+              <div style={{ display: "flex", flexDirection: "column", padding: "10px 20px" }}>
+                {Array.from(new Set(vacations.map(v => v.service))).map(service =>
+                  <FormGroup
+                    key={service}
+                    check
+                    inline
+                  >
+                    <Input type="checkbox" checked={selectedServices.has(service)} onChange={() => checkboxChangeHandler(service)} />
+                    <Label check>
+                      {service}
+                    </Label>
+                  </FormGroup>
+                )}
+              </div>
+            </DropdownMenu>
+          </Dropdown>
+        </div>
+        {people.map((service, i) => (
+          <div key={i} style={{ marginBottom: "15px" }}>
+            <div style={{ marginTop: "0px" }}>{service.service}</div>
+            {
+              service.people.map((p, pIdx) =>
+                <div
+                  key={p.id}
+                  style={{
+                    height: "26px",
+                    lineHeight: "28px",
+                    borderBottom: "1px solid #444",
+                    paddingLeft: "8px",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    background: `${selected.find(x => x === p.id) ? "#ffffff30" : ""}`,
+                    cursor: "pointer",
+                    // borderRadius: `${selected.find(x => x === p) ? "6px" : ""}`,
+                  }}
+                  onClick={() => selectToggleHandler(p.id)}
+                >
+                  {p.name}
+                </div>
+              )
+            }
           </div>
+
         ))}
 
       </div>
@@ -365,10 +440,10 @@ const VacationPage = ({ year }: VacationPageType) => {
           <div
             style={{
               position: "absolute",
-              top: 59,
+              top: 24 + 59,
               left: 0,
               width: "100%",
-              height: `${people.length * 26}px`,
+              height: `calc(100% - 100px)`,
               pointerEvents: "none"
             }}
           >
@@ -403,65 +478,81 @@ const VacationPage = ({ year }: VacationPageType) => {
                 />
               )
             })}
-            {people.map((_, idx) => (
-              <div
-                key={`h-${idx}`}
-                style={{
-                  position: "absolute",
-                  top: `${(idx + 1) * 26}px`,
-                  left: 0,
-                  width: "100%",
-                  borderTop: "1px solid #222"
-                }}
-              />
-            ))}
-          </div>
-          {dateSettings.vacations
-            // .filter(v => new Date(v.start).getFullYear() === year && new Date(v.end).getFullYear() === year)
-            .map((v, i) => {
-              const personIndex = people.indexOf(v.name)
-              const startDate = new Date(v.start);
-              const endDate = new Date(v.end);
-              const startIndex = getDayOfYear(startDate, year) - 1;
-              const endIndex = getDayOfYear(endDate, year) - 1;
-              const left = startIndex * cellWidth + 3;
-              const width = (endIndex - startIndex + 1) * cellWidth - 6;
-              const color = getColorForName(v.name);
-              return (
-                <div
-                  key={i}
-                  className="timelime-vacation"
+            {people.map((service, sIdx) => {
+
+              return service.people.map((_, idx) => {
+                gridIndex++;
+                return <div
+                  key={`h-${idx}`}
                   style={{
-                    left,
-                    width,
-                    top: personIndex * 26 + 62,
-                    background: color,
-                    // boxShadow: `${!selected.find(x => x === v.name) ? "0px 0px 0px 0px transparent" : `0px 0px 2px 1px ${color}`}`,
-                    opacity: `${selected.find(x => x === v.name) || selected.length === 0 ? "1" : "0.1"}`,
-                    cursor: "default"
+                    position: "absolute",
+                    top: `${sIdx * 39 + (gridIndex + 1) * 26}px`,
+                    left: 0,
+                    width: "100%",
+                    borderTop: "1px solid #222"
                   }}
-                  // title={`${v.name}: ${formatDate(v.start)} - ${formatDate(v.end)}`}
-                  onMouseMove={(e) => {
-                    if (selected.find(p => p === v.name) || selected.length === 0) {
-                      setHoveredVacation({
-                        id: v.id,
-                        x: e.clientX,
-                        y: e.clientY,
-                        name: v.name,
-                        start: v.start,
-                        end: v.end,
-                        reason: "",
-                      });
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    setHoveredVacation(null);
-                  }}
-                >
-                  {v.name.length * 2 < width ? <span style={{ overflow: "hidden" }}>{v.name}</span> : <></>}
-                </div>
-              )
-            })}
+                />
+              })
+            })
+            }
+
+          </div>
+          {
+            people.map((service, sIdx) => {
+              return service.people.map((p, pIdx) => {
+                peopleIndex++;
+                return p.vacations.map((v, i) => {
+                  const startDate = new Date(v.start);
+                  const endDate = new Date(startDate);
+
+                  endDate.setDate(endDate.getDate() + v.length - 1);
+
+                  const startIndex = getDayOfYear(startDate, year) - 1;
+                  const endIndex = getDayOfYear(endDate, year) - 1;
+                  const left = startIndex * cellWidth + 3;
+                  const width = (endIndex - startIndex + 1) * cellWidth - 6;
+                  const color = getColorForName(p.name);
+                  return (
+                    <div
+                      key={i}
+                      className="timelime-vacation"
+                      style={{
+                        left,
+                        width,
+                        top: 24 + (sIdx) * 39 + peopleIndex * 26 + 62,
+                        background: color,
+                        // boxShadow: `${!selected.find(x => x === v.name) ? "0px 0px 0px 0px transparent" : `0px 0px 2px 1px ${color}`}`,
+                        opacity: `${selected.find(x => x === p.id) || selected.length === 0 ? "1" : "0.1"}`,
+                        cursor: "default"
+                      }}
+                      // title={`${v.name}: ${formatDate(v.start)} - ${formatDate(v.end)}`}
+                      onMouseMove={(e) => {
+                        if (selected.find(p => p === p) || selected.length === 0) {
+                          setHoveredVacation({
+                            id: Math.random(),
+                            x: e.clientX,
+                            y: e.clientY,
+                            name: p.name,
+                            start: String(startDate),
+                            end: String(endDate),
+                            reason: "",
+                          });
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        setHoveredVacation(null);
+                      }}
+                    >
+                      {p.name.length * 2 < width ? <span style={{ overflow: "hidden" }}>{p.name}</span> : <></>}
+                    </div>
+                  )
+                });
+
+              })
+
+
+            })
+          }
 
           {todayPos >= 0 && (
             <div

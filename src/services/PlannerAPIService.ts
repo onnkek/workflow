@@ -11,6 +11,7 @@ export default class PlannerAPIService {
   _apiSettings: string
   _apiWidgets: string
   _apiAuth: string
+  _apiVacations: string
 
   constructor() {
     this._apiBase = "http://zavgorodinir.oduur.so:8000"
@@ -20,6 +21,7 @@ export default class PlannerAPIService {
     this._apiSettings = "settings"
     this._apiWidgets = "widgets"
     this._apiAuth = "auth"
+    this._apiVacations = "vacations"
   }
 
 
@@ -37,6 +39,15 @@ export default class PlannerAPIService {
 
   getTasks = async () => {
     const response = await fetch(`${this._apiBase}/${this._apiTasks}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    })
+    return await response.json()
+  }
+  getVacations = async () => {
+    const response = await fetch(`${this._apiBase}/${this._apiVacations}`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
